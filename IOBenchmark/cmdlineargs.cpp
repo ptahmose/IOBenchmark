@@ -94,17 +94,6 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 	{
 		return TryGetSizeUint64(number, prefix, size);
 	});
-	//const std::regex regex("[[:blank:]]*([[:digit:]]+)[[:blank:]]*(ki|Ki|Mi|Gi|Ti|Pi|k|K|M|G|T|P)?[[:blank:]]*");
-	//std::smatch match;
-	//if (std::regex_match(str, match, regex))
-	//{
-	//	if (match.size() == 3 && match[1].matched == true)
-	//	{
-	//		return TryGetSizeUint64(match[1].str(), match[2].matched ? match[2].str() : "", size);
-	//	}
-	//}
-
-	//return false;
 }
 
 
