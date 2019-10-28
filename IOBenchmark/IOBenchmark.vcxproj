@@ -154,6 +154,7 @@
     <ClCompile Include="cmdlineargs.cpp" />
     <ClCompile Include="IOBenchmark.cpp" />
     <ClCompile Include="utf8convert.cpp" />
+    <ClCompile Include="WriterAsync.cpp" />
     <ClCompile Include="WriterBasic.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -161,6 +162,7 @@
     <ClInclude Include="cmdlineargs.h" />
     <ClInclude Include="IWriter.h" />
     <ClInclude Include="utf8convert.h" />
+    <ClInclude Include="WriterAsync.h" />
     <ClInclude Include="WriterBasic.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
