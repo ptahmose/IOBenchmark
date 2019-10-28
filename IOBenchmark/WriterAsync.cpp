@@ -35,12 +35,15 @@ bool AsyncWriter::AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize
 	this->overlapped[idxOfEmptySlot].Offset = (DWORD)offset;
 	this->overlapped[idxOfEmptySlot].OffsetHigh = (DWORD)(offset >> 32);
 
+	// does not seem to be necessary, the event is reset automatically (-> https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile )
+	//ResetEvent(this->overlapped[idxOfEmptySlot].hEvent);
+
 	this->writeData[idxOfEmptySlot].fileOffset = offset;
 	this->writeData[idxOfEmptySlot].ptrData = ptrData;
 	this->writeData[idxOfEmptySlot].dataSize = dataSize;
 	this->writeData[idxOfEmptySlot].deleteFunctor = deleteFunctor;
 
-	WriteFile(
+	BOOL B = WriteFile(
 		this->hFile,
 		ptrData,
 		dataSize,
