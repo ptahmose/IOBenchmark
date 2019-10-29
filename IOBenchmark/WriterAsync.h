@@ -30,6 +30,8 @@ public:
 	bool AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize, std::function<void(const void*)> deleteFunctor);
 
 	void WaitUntilSlotsAreAvailable();
+
+	void WaitUntilNoPendingWrites();
 private:
 	int GetFirstEmptySlot();
 };
@@ -39,12 +41,14 @@ class WriterAsync : public IWriter
 private:
 	static const int MaxPendingOperationCount = 5;
 
+	std::unique_ptr<AsyncWriter> writer;
+
 	HANDLE hFile;
 	WriterOptions options;
 
-	std::vector<bool> activeWrites;
+	/*std::vector<bool> activeWrites;
 	std::vector<HANDLE> events;
-	OVERLAPPED overlapped[MaxPendingOperationCount];
+	OVERLAPPED overlapped[MaxPendingOperationCount];*/
 public:
 	WriterAsync();
 
@@ -55,5 +59,5 @@ public:
 	virtual ~WriterAsync();
 
 private:
-	bool StartWrite();
+	//bool StartWrite();
 };

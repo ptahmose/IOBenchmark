@@ -30,6 +30,9 @@
     <ClCompile Include="WriterAsync.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IWriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineargs.h">

@@ -2,9 +2,18 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
 
 class IWriter
 {
+public:
+	enum class WriterType
+	{
+		SimpleSync,
+		Async
+	};
+
+	static std::shared_ptr<IWriter> CreateInstance(WriterType type);
 public:
 	struct WriterOptions
 	{
@@ -19,3 +28,4 @@ public:
 
 	virtual ~IWriter() {}
 };
+

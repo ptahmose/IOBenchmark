@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="cmdlineargs.cpp" />
     <ClCompile Include="IOBenchmark.cpp" />
+    <ClCompile Include="IWriter.cpp" />
     <ClCompile Include="utf8convert.cpp" />
     <ClCompile Include="WriterAsync.cpp" />
     <ClCompile Include="WriterBasic.cpp" />

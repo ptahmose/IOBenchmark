@@ -32,7 +32,8 @@ int main()
 	CCmdlineArgs cmdlineArgs;
 	cmdlineArgs.ParseArguments(argc, argv);
 
-	shared_ptr<IWriter> writer = make_shared<WriterBasic>();
+	//shared_ptr<IWriter> writer = make_shared<WriterBasic>();
+	shared_ptr<IWriter> writer = IWriter::CreateInstance(IWriter::WriterType::Async);
 
 	IWriter::WriterOptions writerOptions;
 	writerOptions.blkSize = cmdlineArgs.GetBlkSize();

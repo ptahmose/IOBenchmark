@@ -81,7 +81,7 @@ void AsyncWriter::WaitUntilSlotsAreAvailable()
 	int idxOfWriteOperationCompleted = dw - WAIT_OBJECT_0;
 
 	this->writeData[idxOfWriteOperationCompleted].deleteFunctor(this->writeData[idxOfWriteOperationCompleted].ptrData);
-	
+
 	this->activeWrites[idxOfWriteOperationCompleted] = false;
 	this->noOfActiveWrites--;
 }
@@ -89,11 +89,11 @@ void AsyncWriter::WaitUntilSlotsAreAvailable()
 //---------------------------------------------------------------------------------------
 
 WriterAsync::WriterAsync() :
-	hFile(INVALID_HANDLE_VALUE),
+	hFile(INVALID_HANDLE_VALUE)/*,
 	activeWrites(MaxPendingOperationCount, false),
-	events(MaxPendingOperationCount)
+	events(MaxPendingOperationCount)*/
 {
-	for (int i = 0; i < MaxPendingOperationCount; ++i)
+	/*for (int i = 0; i < MaxPendingOperationCount; ++i)
 	{
 		this->events[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
 	}
@@ -101,7 +101,7 @@ WriterAsync::WriterAsync() :
 	for (int i = 0; i < sizeof(overlapped) / sizeof(overlapped[0]); ++i)
 	{
 		ZeroMemory(&(this->overlapped[i]), sizeof(overlapped[0]));
-	}
+	}*/
 }
 
 /*virtual*/void WriterAsync::Init(const WriterOptions& options)
@@ -118,24 +118,57 @@ WriterAsync::WriterAsync() :
 
 	this->options = options;
 	this->hFile = h;
+
+	this->writer = make_unique<AsyncWriter>(h, MaxPendingOperationCount);
 }
 
 /*virtual*/void WriterAsync::DoIt()
 {
-	for (;;)
+	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
+		CBlk* blk = new CBlk(this->options.blkSize);
+
 		for (;;)
 		{
-			bool b = this->StartWrite();
+			bool b = this->writer->AddWrite(
+				totalBytesWritten, 
+				blk->GetData(), 
+				blk->GetDataSize(), 
+				[=](const void* p)->void
+					{
+						delete blk; 
+					});
+
 			if (b == false)
+			{
+				this->writer->WaitUntilSlotsAreAvailable();
+			}
+			else
 			{
 				break;
 			}
 		}
 
-		DWORD dw = WaitForMultipleObjects(MaxPendingOperationCount, &this->events[0], FALSE, INFINITE);
-
+		totalBytesWritten += this->options.blkSize;
 	}
+
+
+	//for (;;)
+	//{
+
+
+	//	for (;;)
+	//	{
+	//		bool b = this->StartWrite();
+	//		if (b == false)
+	//		{
+	//			break;
+	//		}
+	//	}
+
+	//	DWORD dw = WaitForMultipleObjects(MaxPendingOperationCount, &this->events[0], FALSE, INFINITE);
+
+	//}
 
 
 	//for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
@@ -159,10 +192,10 @@ WriterAsync::WriterAsync() :
 	//}
 }
 
-bool WriterAsync::StartWrite()
-{
-
-}
+//bool WriterAsync::StartWrite()
+//{
+//
+//}
 
 /*virtual*/WriterAsync::~WriterAsync()
 {
