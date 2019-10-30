@@ -6,6 +6,9 @@
 #include "IWriter.h"
 #include <Windows.h>
 
+#include "asyncwriter.h"
+#include "Blk.h"
+
 class AsyncWriter
 {
 private:
@@ -39,9 +42,20 @@ private:
 class WriterAsync : public IWriter
 {
 private:
+	class Data
+	{
+	private:
+		CBlk blk;
+	public:
+		Data(std::uint32_t blkSize) :blk(blkSize) {}
+
+		const void* operator()(void) const { return this->blk.GetData(); }
+		std::uint32_t size() const { return this->blk.GetDataSize(); }
+	};
+private:
 	static const int MaxPendingOperationCount = 5;
 
-	std::unique_ptr<AsyncWriter> writer;
+	std::unique_ptr<AsyncWriter2<Data>> writer;
 
 	HANDLE hFile;
 	WriterOptions options;

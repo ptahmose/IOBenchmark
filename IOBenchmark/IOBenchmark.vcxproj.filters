@@ -53,5 +53,8 @@
     <ClInclude Include="WriterAsync.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="asyncwriter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

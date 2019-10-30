@@ -119,25 +119,20 @@ WriterAsync::WriterAsync() :
 	this->options = options;
 	this->hFile = h;
 
-	this->writer = make_unique<AsyncWriter>(h, MaxPendingOperationCount);
+	this->writer = make_unique<AsyncWriter2<Data>>(h, MaxPendingOperationCount);
 }
 
 /*virtual*/void WriterAsync::DoIt()
 {
 	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
-		CBlk* blk = new CBlk(this->options.blkSize);
+		auto blk = make_shared<Data>(this->options.blkSize);
 
 		for (;;)
 		{
 			bool b = this->writer->AddWrite(
-				totalBytesWritten, 
-				blk->GetData(), 
-				blk->GetDataSize(), 
-				[=](const void* p)->void
-					{
-						delete blk; 
-					});
+				totalBytesWritten,
+				blk);
 
 			if (b == false)
 			{

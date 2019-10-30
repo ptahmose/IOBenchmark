@@ -159,6 +159,7 @@
     <ClCompile Include="WriterBasic.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="asyncwriter.h" />
     <ClInclude Include="Blk.h" />
     <ClInclude Include="cmdlineargs.h" />
     <ClInclude Include="IWriter.h" />
