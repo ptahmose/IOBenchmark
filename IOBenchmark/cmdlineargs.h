@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <functional>
+#include "IWriter.h"
 
 class CCmdlineArgs
 {
@@ -10,7 +11,9 @@ private:
 	std::uint32_t blkSize;
 	std::uint64_t fileSize;
 	std::string filename;
+	IWriter::WriterType writerType;
 public:
+	CCmdlineArgs();
 	bool ParseArguments(int argc, char** argv);
 
 	std::uint32_t GetBlkSize() { return this->blkSize; }

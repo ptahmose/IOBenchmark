@@ -6,12 +6,23 @@
 
 using namespace std;
 
+CCmdlineArgs::CCmdlineArgs()
+	: blkSize(0),fileSize(0),writerType(IWriter::WriterType::Invalid)
+{
+}
+
 bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 {
+	std::unordered_map<std::string, IWriter::WriterType> map{
+	   {"default", IWriter::WriterType::SimpleSync},
+	   {"sync", IWriter::WriterType::SimpleSync},
+	   {"async", IWriter::WriterType::Async}};
+
 	args::ArgumentParser parser("IOBenchmark");
 	args::ValueFlag<string> blocksizeString(parser, "blocksize", "The blocksize", { 'b',"blocksize" });
 	args::ValueFlag<string> filesizeString(parser, "filesize", "The filesize", { 'f',"filesize" });
 	args::Positional<std::string> filenameArg(parser, "filename", "The filename");
+	args::MapFlag<std::string, IWriter::WriterType> writerType(parser, "WriterType", "Type of writer", { 'w', "writertype" }, map);
 	try
 	{
 		parser.ParseCLI(argc, argv);
@@ -50,6 +61,11 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 		uint64_t filesize;
 		CCmdlineArgs::TryParseSizeUint64(args::get(filesizeString), filesize);
 		this->fileSize = filesize;
+	}
+
+	if (writerType)
+	{
+		this->writerType = args::get(writerType);
 	}
 
 	if (filenameArg)

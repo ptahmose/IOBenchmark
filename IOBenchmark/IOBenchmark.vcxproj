@@ -163,6 +163,7 @@
     <ClInclude Include="Blk.h" />
     <ClInclude Include="cmdlineargs.h" />
     <ClInclude Include="IWriter.h" />
+    <ClInclude Include="timeit.h" />
     <ClInclude Include="utf8convert.h" />
     <ClInclude Include="WriterAsync.h" />
     <ClInclude Include="WriterBasic.h" />

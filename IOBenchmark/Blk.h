@@ -17,6 +17,16 @@ public:
 		this->blkSize = blkSize;
 	}
 
+	CBlk(std::uint32_t blkSize, int startValue) : CBlk(blkSize)
+	{
+		this->FillWithIntegerCounting(startValue);
+	}
+
+	~CBlk()
+	{
+		HeapFree(GetProcessHeap(), 0, this->ptrData);
+	}
+
 	const void* GetData() const
 	{
 		return this->ptrData;
@@ -27,8 +37,13 @@ public:
 		return this->blkSize;
 	}
 
-	~CBlk()
+private:
+	void FillWithIntegerCounting(int startValue)
 	{
-		HeapFree(GetProcessHeap(), 0, this->ptrData);
+		int* ptrDst = (int*)this->ptrData;
+		for (std::uint32_t idx = 0; idx < this->blkSize / sizeof(int); ++idx)
+		{
+			*(ptrDst + idx) = startValue++;
+		}
 	}
 };

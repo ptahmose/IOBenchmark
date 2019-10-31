@@ -47,7 +47,7 @@ private:
 	private:
 		CBlk blk;
 	public:
-		Data(std::uint32_t blkSize) :blk(blkSize) {}
+		Data(std::uint32_t blkSize, int startValue) :blk(blkSize, startValue) {}
 
 		const void* operator()(void) const { return this->blk.GetData(); }
 		std::uint32_t size() const { return this->blk.GetDataSize(); }

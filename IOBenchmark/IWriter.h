@@ -9,6 +9,7 @@ class IWriter
 public:
 	enum class WriterType
 	{
+		Invalid,
 		SimpleSync,
 		Async
 	};

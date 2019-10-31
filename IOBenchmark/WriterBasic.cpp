@@ -27,10 +27,11 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 
 /*virtual*/void WriterBasic::DoIt()
 {
+	int startValueForFill = 0;
 	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
 		DWORD bytesWritten;
-		CBlk blk(this->options.blkSize);
+		CBlk blk(this->options.blkSize, startValueForFill++);
 		WriteFile(
 			this->hFile,
 			blk.GetData(),

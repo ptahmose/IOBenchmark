@@ -9,6 +9,7 @@
 #include "cmdlineargs.h"
 #include "IWriter.h"
 #include "WriterBasic.h"
+#include "timeit.h"
 
 using namespace std;
 
@@ -41,9 +42,13 @@ int main()
 	writerOptions.filename = cmdlineArgs.GetFilename();
 	writer->Init(writerOptions);
 
+	CTimeIt timeit;
 	writer->DoIt();
+	timeit.Stop();
 
-    std::cout << "Hello World!\n";
+	uint64_t byteswritten = (writerOptions.fileSize / writerOptions.blkSize) * writerOptions.blkSize;
+
+	cout << "data rate is " << byteswritten / timeit.GetElapsedTimeInSeconds() / 1000000.0 << "MB/s";
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

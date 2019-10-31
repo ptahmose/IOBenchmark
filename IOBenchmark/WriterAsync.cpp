@@ -5,86 +5,86 @@
 
 using namespace std;
 
-AsyncWriter::AsyncWriter(HANDLE h, int maxNoOfPendingWrites) :
-	hFile(h),
-	writeData(maxNoOfPendingWrites),
-	overlapped(maxNoOfPendingWrites),
-	activeWrites(maxNoOfPendingWrites, false),
-	events(maxNoOfPendingWrites),
-	noOfActiveWrites(0),
-	maxNoOfPendingWrites(maxNoOfPendingWrites)
-{
-	for (int i = 0; i < maxNoOfPendingWrites; ++i)
-	{
-		ZeroMemory(&(this->overlapped[i]), sizeof(OVERLAPPED));
-		this->events[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
-	}
-}
-
-bool AsyncWriter::AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize, std::function<void(const void*)> deleteFunctor)
-{
-	if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
-	{
-		return false;
-	}
-
-	int idxOfEmptySlot = this->GetFirstEmptySlot();
-
-	ZeroMemory(&(this->overlapped[idxOfEmptySlot]), sizeof(OVERLAPPED));
-	this->overlapped[idxOfEmptySlot].hEvent = this->events[idxOfEmptySlot];
-	this->overlapped[idxOfEmptySlot].Offset = (DWORD)offset;
-	this->overlapped[idxOfEmptySlot].OffsetHigh = (DWORD)(offset >> 32);
-
-	// does not seem to be necessary, the event is reset automatically (-> https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile )
-	//ResetEvent(this->overlapped[idxOfEmptySlot].hEvent);
-
-	this->writeData[idxOfEmptySlot].fileOffset = offset;
-	this->writeData[idxOfEmptySlot].ptrData = ptrData;
-	this->writeData[idxOfEmptySlot].dataSize = dataSize;
-	this->writeData[idxOfEmptySlot].deleteFunctor = deleteFunctor;
-
-	BOOL B = WriteFile(
-		this->hFile,
-		ptrData,
-		dataSize,
-		NULL,
-		&this->overlapped[idxOfEmptySlot]);
-
-	this->activeWrites[idxOfEmptySlot] = true;
-	this->noOfActiveWrites++;
-
-	return true;
-}
-
-int AsyncWriter::GetFirstEmptySlot()
-{
-	for (int i = 0; i < maxNoOfPendingWrites; ++i)
-	{
-		if (this->activeWrites[i] == false)
-		{
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-void AsyncWriter::WaitUntilSlotsAreAvailable()
-{
-	if (this->noOfActiveWrites < this->maxNoOfPendingWrites)
-	{
-		return;
-	}
-
-	DWORD dw = WaitForMultipleObjects(this->noOfActiveWrites, &this->events[0], FALSE, INFINITE);
-
-	int idxOfWriteOperationCompleted = dw - WAIT_OBJECT_0;
-
-	this->writeData[idxOfWriteOperationCompleted].deleteFunctor(this->writeData[idxOfWriteOperationCompleted].ptrData);
-
-	this->activeWrites[idxOfWriteOperationCompleted] = false;
-	this->noOfActiveWrites--;
-}
+//AsyncWriter::AsyncWriter(HANDLE h, int maxNoOfPendingWrites) :
+//	hFile(h),
+//	writeData(maxNoOfPendingWrites),
+//	overlapped(maxNoOfPendingWrites),
+//	activeWrites(maxNoOfPendingWrites, false),
+//	events(maxNoOfPendingWrites),
+//	noOfActiveWrites(0),
+//	maxNoOfPendingWrites(maxNoOfPendingWrites)
+//{
+//	for (int i = 0; i < maxNoOfPendingWrites; ++i)
+//	{
+//		ZeroMemory(&(this->overlapped[i]), sizeof(OVERLAPPED));
+//		this->events[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
+//	}
+//}
+//
+//bool AsyncWriter::AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize, std::function<void(const void*)> deleteFunctor)
+//{
+//	if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
+//	{
+//		return false;
+//	}
+//
+//	int idxOfEmptySlot = this->GetFirstEmptySlot();
+//
+//	ZeroMemory(&(this->overlapped[idxOfEmptySlot]), sizeof(OVERLAPPED));
+//	this->overlapped[idxOfEmptySlot].hEvent = this->events[idxOfEmptySlot];
+//	this->overlapped[idxOfEmptySlot].Offset = (DWORD)offset;
+//	this->overlapped[idxOfEmptySlot].OffsetHigh = (DWORD)(offset >> 32);
+//
+//	// does not seem to be necessary, the event is reset automatically (-> https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile )
+//	//ResetEvent(this->overlapped[idxOfEmptySlot].hEvent);
+//
+//	this->writeData[idxOfEmptySlot].fileOffset = offset;
+//	this->writeData[idxOfEmptySlot].ptrData = ptrData;
+//	this->writeData[idxOfEmptySlot].dataSize = dataSize;
+//	this->writeData[idxOfEmptySlot].deleteFunctor = deleteFunctor;
+//
+//	BOOL B = WriteFile(
+//		this->hFile,
+//		ptrData,
+//		dataSize,
+//		NULL,
+//		&this->overlapped[idxOfEmptySlot]);
+//
+//	this->activeWrites[idxOfEmptySlot] = true;
+//	this->noOfActiveWrites++;
+//
+//	return true;
+//}
+//
+//int AsyncWriter::GetFirstEmptySlot()
+//{
+//	for (int i = 0; i < maxNoOfPendingWrites; ++i)
+//	{
+//		if (this->activeWrites[i] == false)
+//		{
+//			return i;
+//		}
+//	}
+//
+//	return -1;
+//}
+//
+//void AsyncWriter::WaitUntilSlotsAreAvailable()
+//{
+//	if (this->noOfActiveWrites < this->maxNoOfPendingWrites)
+//	{
+//		return;
+//	}
+//
+//	DWORD dw = WaitForMultipleObjects(this->noOfActiveWrites, &this->events[0], FALSE, INFINITE);
+//
+//	int idxOfWriteOperationCompleted = dw - WAIT_OBJECT_0;
+//
+//	this->writeData[idxOfWriteOperationCompleted].deleteFunctor(this->writeData[idxOfWriteOperationCompleted].ptrData);
+//
+//	this->activeWrites[idxOfWriteOperationCompleted] = false;
+//	this->noOfActiveWrites--;
+//}
 
 //---------------------------------------------------------------------------------------
 
@@ -124,9 +124,10 @@ WriterAsync::WriterAsync() :
 
 /*virtual*/void WriterAsync::DoIt()
 {
+	int startValue = 0;
 	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
-		auto blk = make_shared<Data>(this->options.blkSize);
+		auto blk = make_shared<Data>(this->options.blkSize, startValue);
 
 		for (;;)
 		{
