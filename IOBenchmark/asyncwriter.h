@@ -75,9 +75,11 @@ private:
 	std::vector<HANDLE> events;
 	std::vector<bool> activeWrites;
 	int noOfActiveWrites;
+	std::uint64_t pendingBytes;
 public:
-	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites): AsyncWriter2(h,maxNoOfPendingWrites,(numeric_limits<uint64_t>::max)())
-	{}
+	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites) : AsyncWriter2(h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
+	{
+	}
 
 	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites, std::uint64_t maxPendingBytes) :
 		hFile(h),
@@ -87,7 +89,8 @@ public:
 		events(maxNoOfPendingWrites),
 		noOfActiveWrites(0),
 		maxNoOfPendingWrites(maxNoOfPendingWrites),
-		maxPendingBytes(maxPendingBytes)
+		maxPendingBytes(maxPendingBytes),
+		pendingBytes(0)
 	{
 		for (int i = 0; i < maxNoOfPendingWrites; ++i)
 		{
@@ -108,9 +111,25 @@ public:
 		}
 	}
 
+	/// Determine if we the are pending write operations.
+	/// \returns True if there are pending write operations, false if not.
 	bool AreWritesPending() const
 	{
 		return this->noOfActiveWrites > 0;
+	}
+
+	/// Gets number of pending write operations.
+	/// \returns The number of pending write operations.
+	int GetNumberOfPendingWrites() const
+	{
+		return this->noOfActiveWrites;
+	}
+
+	/// Gets the sum of bytes which are pending to be written.
+	/// \returns The sum of pending bytes to be written.
+	std::uint64_t GetPendingBytesToBeWritten() const
+	{
+		return this->pendingBytes;
 	}
 
 	bool AddWrite(ULONGLONG offset, std::shared_ptr<t> data)
@@ -118,6 +137,27 @@ public:
 		if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
 		{
 			return false;
+		}
+
+		if (this->maxNoOfPendingWrites != (numeric_limits<uint64_t>::max)())
+		{
+			auto size = data->size();
+			if (size < this->maxPendingBytes)
+			{
+				if (this->pendingBytes + size > this->maxPendingBytes)
+				{
+					return false
+				}
+			}
+			else
+			{
+				// if the size of this Write by itself exceeds the "maxPendingBytes" value, we deal with this
+				// in the following way - we allow the write if it is the only currently active write operation
+				if (this->AreWritesPending())
+				{
+					return false
+				}
+			}
 		}
 
 		int idxOfEmptySlot = this->GetFirstEmptySlot();
@@ -155,6 +195,7 @@ public:
 
 		this->activeWrites[idxOfEmptySlot] = true;
 		this->noOfActiveWrites++;
+		this->pendingBytes += data->size();
 
 		return true;
 	}
@@ -287,7 +328,7 @@ private:
 		return -1;
 	}
 
-	std::tuple<std::vector<HANDLE>,std::vector<int>> GetUnfinishedWritesEventHandles()
+	std::tuple<std::vector<HANDLE>, std::vector<int>> GetUnfinishedWritesEventHandles()
 	{
 		std::vector<HANDLE> handles;
 		std::vector<int> indices;
@@ -302,11 +343,12 @@ private:
 			}
 		}
 
-		return std::make_tuple(handles,indices);
+		return std::make_tuple(handles, indices);
 	}
 
 	void ClearWrite(int idxOfWriteOperationCompleted)
 	{
+		this->pendingBytes -= this->writeData[idxOfWriteOperationCompleted].data->size();
 		this->writeData[idxOfWriteOperationCompleted].data.reset();
 		this->activeWrites[idxOfWriteOperationCompleted] = false;
 		this->noOfActiveWrites--;
