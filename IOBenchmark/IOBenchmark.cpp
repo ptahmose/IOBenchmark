@@ -40,10 +40,25 @@ int main()
 	writerOptions.blkSize = cmdlineArgs.GetBlkSize();
 	writerOptions.fileSize = cmdlineArgs.GetFileSize();
 	writerOptions.filename = cmdlineArgs.GetFilename();
-	writer->Init(writerOptions);
+	try
+	{
+		writer->Init(writerOptions);
+	}
+	catch (WriterException & excp)
+	{
+		excp.GetOSError();
+	}
 
 	CTimeIt timeit;
-	writer->DoIt();
+	try
+	{
+		writer->DoIt();
+	}
+	catch (WriterException & excp)
+	{
+		excp.GetOSError();
+	}
+
 	timeit.Stop();
 
 	uint64_t byteswritten = (writerOptions.fileSize / writerOptions.blkSize) * writerOptions.blkSize;

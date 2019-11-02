@@ -2,6 +2,7 @@
 #include "Blk.h"
 #include "utf8convert.h"
 #include <cstdint>
+#include <sstream>
 
 using namespace std;
 
@@ -21,6 +22,15 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 
+	if (h == INVALID_HANDLE_VALUE)
+	{
+		stringstream ss;
+		ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << ".";
+		auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());
+		excp.SetLastError(GetLastError());
+		throw excp;
+	}
+
 	this->options = options;
 	this->hFile = h;
 }
@@ -32,12 +42,18 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 	{
 		DWORD bytesWritten;
 		CBlk blk(this->options.blkSize, startValueForFill++);
-		WriteFile(
+		DWORD dw = WriteFile(
 			this->hFile,
 			blk.GetData(),
 			blk.GetDataSize(),
 			&bytesWritten,
 			NULL);
+		if (dw != TRUE)
+		{
+			auto excp = WriterException(WriterException::ErrorType::APIError, "Error when calling \"WriteFile\".");
+			excp.SetLastError(GetLastError());
+			throw excp;
+		}
 
 		totalBytesWritten += bytesWritten;
 	}

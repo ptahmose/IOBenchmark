@@ -59,5 +59,11 @@
     <ClInclude Include="timeit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WriterException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="args.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

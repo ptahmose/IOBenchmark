@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 
+#include "WriterException.h"
+
 class IWriter
 {
 public:

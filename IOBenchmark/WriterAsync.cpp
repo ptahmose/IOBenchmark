@@ -2,6 +2,7 @@
 #include "Blk.h"
 #include "utf8convert.h"
 #include <cstdint>
+#include <sstream>
 
 using namespace std;
 
@@ -89,19 +90,8 @@ using namespace std;
 //---------------------------------------------------------------------------------------
 
 WriterAsync::WriterAsync() :
-	hFile(INVALID_HANDLE_VALUE)/*,
-	activeWrites(MaxPendingOperationCount, false),
-	events(MaxPendingOperationCount)*/
+	hFile(INVALID_HANDLE_VALUE)
 {
-	/*for (int i = 0; i < MaxPendingOperationCount; ++i)
-	{
-		this->events[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
-	}
-
-	for (int i = 0; i < sizeof(overlapped) / sizeof(overlapped[0]); ++i)
-	{
-		ZeroMemory(&(this->overlapped[i]), sizeof(overlapped[0]));
-	}*/
 }
 
 /*virtual*/void WriterAsync::Init(const WriterOptions& options)
@@ -115,6 +105,14 @@ WriterAsync::WriterAsync() :
 		CREATE_NEW,
 		FILE_FLAG_OVERLAPPED,
 		NULL);
+	if (h == INVALID_HANDLE_VALUE)
+	{
+		stringstream ss;
+		ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << ".";
+		auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());;
+		excp.SetLastError(GetLastError());
+		throw excp;
+	}
 
 	this->options = options;
 	this->hFile = h;
@@ -131,13 +129,26 @@ WriterAsync::WriterAsync() :
 
 		for (;;)
 		{
-			bool b = this->writer->AddWrite(
-				totalBytesWritten,
-				blk);
+			bool b;
+			try
+			{
+				b = this->writer->AddWrite(
+					totalBytesWritten,
+					blk);
+			}
+			catch (AsyncWriterException awexcp)
+			{
+				stringstream ss;
+				ss << "Error from AsyncWriter: \"" << awexcp.what() << "\".";
+				auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());
+				throw excp;
+			}
 
 			if (b == false)
 			{
-				this->writer->WaitUntilSlotsAreAvailable();
+				this->writer->WaitUntilSlotIsAvailable();
+
+				this->writer->ClearAllFinishedSlots();
 			}
 			else
 			{
