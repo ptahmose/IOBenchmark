@@ -55,18 +55,23 @@ public:
 	}
 };
 
+struct AsyncWriterNullEnv
+{
+	void Assert(bool, const char* sz) {}
+};
+
 /// An asynchronous writer 2.
 /// \tparam t The "data" generic type parameter. A shared pointer to an instance is representing the 
 /// 		  data, and this type must support the operations "uint32_t size()" (giving the size of data in bytes)
 /// 		  and "const void* operator()" (giving a pointer to the data).
-template <class t>
+template <class tData, class tEnv = AsyncWriterNullEnv>
 class AsyncWriter2
 {
 private:
 	struct WriteOperationData
 	{
 		ULONGLONG fileOffset;
-		std::shared_ptr<t> data;
+		std::shared_ptr<tData> data;
 	};
 
 	struct ErrorState
@@ -76,7 +81,13 @@ private:
 		std::string information;
 		DWORD lastErrorCode;
 	};
+
+	struct NullEnv
+	{
+		void Assert(bool, const char* sz) {}
+	};
 private:
+	tEnv env;
 	ErrorState errorState;
 	HANDLE hFile;
 	int maxNoOfPendingWrites;
@@ -89,12 +100,18 @@ private:
 	std::uint64_t pendingBytes;
 
 public:
-	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites) : 
-		AsyncWriter2(h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
+	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites) :
+		AsyncWriter2(tEnv(), h, maxNoOfPendingWrites)
 	{
 	}
 
-	AsyncWriter2(HANDLE h, int maxNoOfPendingWrites, std::uint64_t maxPendingBytes) :
+	AsyncWriter2(tEnv env, HANDLE h, int maxNoOfPendingWrites) :
+		AsyncWriter2(env, h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
+	{
+	}
+
+	AsyncWriter2(tEnv env, HANDLE h, int maxNoOfPendingWrites, std::uint64_t maxPendingBytes) :
+		env(env),
 		hFile(h),
 		writeData(maxNoOfPendingWrites),
 		overlapped(maxNoOfPendingWrites),
@@ -164,7 +181,7 @@ public:
 	/// \param offset The file offset at which the data is to be written.
 	/// \param data   The  'data'-object.
 	/// \returns True if it succeeds, false if it fails.
-	bool AddWrite(ULONGLONG offset, std::shared_ptr<t> data)
+	bool AddWrite(ULONGLONG offset, std::shared_ptr<tData> data)
 	{
 		if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
 		{
@@ -362,7 +379,7 @@ private:
 		return -1;
 	}
 
-	void SetErrorState(std::string message,DWORD lastError)
+	void SetErrorState(std::string message, DWORD lastError)
 	{
 		if (!this->errorState.isInErrorState)
 		{
