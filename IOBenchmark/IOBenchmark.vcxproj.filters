@@ -33,6 +33,9 @@
     <ClCompile Include="IWriter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinConsoleOut.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineargs.h">
@@ -63,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="args.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IConsoleOut.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

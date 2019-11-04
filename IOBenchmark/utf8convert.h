@@ -47,5 +47,6 @@ private:
 };
 
 std::wstring Utf8ToUtf16(const std::string& utf8);
+std::wstring Utf8ToUtf16(const char* utf8);
 std::string Utf16ToUtf8(const std::wstring& utf16);
 std::string Utf16ToUtf8(const wchar_t* sz);

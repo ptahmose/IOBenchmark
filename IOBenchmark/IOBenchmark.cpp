@@ -5,16 +5,20 @@
 #include <Windows.h>
 #include <string>
 #include <vector>
+#include <sstream>
 #include "utf8convert.h"
 #include "cmdlineargs.h"
 #include "IWriter.h"
 #include "WriterBasic.h"
 #include "timeit.h"
+#include "WinConsoleOut.h"
 
 using namespace std;
 
 int main()
 {
+	unique_ptr<WinConsoleOut> conout(new WinConsoleOut);
+
 	int argc;
 	LPWSTR* szarglist = CommandLineToArgvW(GetCommandLineW(), &argc);
 	std::vector<string> utf8Args;
@@ -33,7 +37,12 @@ int main()
 	CCmdlineArgs cmdlineArgs;
 	cmdlineArgs.ParseArguments(argc, argv);
 
-	//shared_ptr<IWriter> writer = make_shared<WriterBasic>();
+	stringstream ss;
+	ss << "Outputfile is \"" << cmdlineArgs.GetFilename() << "\".";
+	conout->WriteLineStdOutString(ss.str());
+
+	conout->WriteLineStdOutString("Another line");
+
 	shared_ptr<IWriter> writer = IWriter::CreateInstance(IWriter::WriterType::Async);
 
 	IWriter::WriterOptions writerOptions;

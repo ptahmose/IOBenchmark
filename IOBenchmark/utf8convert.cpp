@@ -1,10 +1,10 @@
 #include "utf8convert.h"
 #include <Windows.h>
 
-std::wstring Utf8ToUtf16(const std::string & utf8)
+std::wstring Utf8ToUtf16(const char* utf8, size_t length)
 {
-    std::wstring utf16;
-	if (utf8.empty())
+	std::wstring utf16;
+	if (length == 0)
 	{
 		return utf16;
 	}
@@ -18,18 +18,18 @@ std::wstring Utf8ToUtf16(const std::string & utf8)
 	// If the size_t value is too big to be stored into an int, 
 	// throw an exception to prevent conversion errors like huge size_t values 
 	// converted to *negative* integers.
-	if (utf8.length() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+	if (length > static_cast<size_t>((std::numeric_limits<int>::max)()))
 	{
 		throw std::overflow_error("Input string too long.");
 	}
-	const int utf8Length = static_cast<int>(utf8.length());
+	const int utf8Length = static_cast<int>(length);
 
 	// Get the size of the destination UTF-16 string
 	const int utf16Length = ::MultiByteToWideChar(
 		CP_UTF8,       // source string is in UTF-8
 		kFlags,        // conversion flags
-		utf8.data(),   // source UTF-8 string pointer
-		utf8Length,    // length of the source UTF-8 string, in chars
+		utf8,		   // source UTF-8 string pointer
+		length,		   // length of the source UTF-8 string, in chars
 		NULL,          // unused - no conversion done in this step
 		0);            // request size of destination buffer, in wchar_ts
 
@@ -53,8 +53,8 @@ std::wstring Utf8ToUtf16(const std::string & utf8)
 	int result = ::MultiByteToWideChar(
 		CP_UTF8,       // source string is in UTF-8
 		kFlags,        // conversion flags
-		utf8.data(),   // source UTF-8 string pointer
-		utf8Length,    // length of source UTF-8 string, in chars
+		utf8,		   // source UTF-8 string pointer
+		length,		   // length of source UTF-8 string, in chars
 		&utf16[0],     // pointer to destination buffer
 		utf16Length);  // size of destination buffer, in wchar_ts           
 
@@ -75,10 +75,21 @@ std::wstring Utf8ToUtf16(const std::string & utf8)
 	return utf16;
 }
 
+std::wstring Utf8ToUtf16(const char* utf8)
+{
+	return Utf8ToUtf16(utf8, strlen(utf8));
+}
+
+
+std::wstring Utf8ToUtf16(const std::string& utf8)
+{
+	return Utf8ToUtf16(utf8.c_str(), utf8.size());
+}
+
 static std::string Utf16ToUtf8(LPCWSTR sz, size_t length)
 {
 	std::string utf8;
-	if (length==0)
+	if (length == 0)
 	{
 		return utf8;
 	}

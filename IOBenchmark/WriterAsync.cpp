@@ -159,6 +159,7 @@ WriterAsync::WriterAsync() :
 		totalBytesWritten += this->options.blkSize;
 	}
 
+	this->writer->WaitUntilNoPendingWrites();
 
 	//for (;;)
 	//{
@@ -206,6 +207,8 @@ WriterAsync::WriterAsync() :
 
 /*virtual*/WriterAsync::~WriterAsync()
 {
+	this->writer.reset();
+
 	if (this->hFile != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(this->hFile);

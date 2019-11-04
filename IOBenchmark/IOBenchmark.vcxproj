@@ -156,6 +156,7 @@
     <ClCompile Include="IOBenchmark.cpp" />
     <ClCompile Include="IWriter.cpp" />
     <ClCompile Include="utf8convert.cpp" />
+    <ClCompile Include="WinConsoleOut.h" />
     <ClCompile Include="WriterAsync.cpp" />
     <ClCompile Include="WriterBasic.cpp" />
   </ItemGroup>
@@ -164,6 +165,7 @@
     <ClInclude Include="asyncwriter.h" />
     <ClInclude Include="Blk.h" />
     <ClInclude Include="cmdlineargs.h" />
+    <ClInclude Include="IConsoleOut.h" />
     <ClInclude Include="IWriter.h" />
     <ClInclude Include="timeit.h" />
     <ClInclude Include="utf8convert.h" />

@@ -12,13 +12,15 @@ private:
 	std::uint64_t fileSize;
 	std::string filename;
 	IWriter::WriterType writerType;
+	int logVerbosity;
 public:
 	CCmdlineArgs();
 	bool ParseArguments(int argc, char** argv);
 
-	std::uint32_t GetBlkSize() { return this->blkSize; }
-	std::uint64_t GetFileSize() { return this->fileSize; }
-	const std::string& GetFilename() { return this->filename; }
+	std::uint32_t GetBlkSize() const { return this->blkSize; }
+	std::uint64_t GetFileSize() const { return this->fileSize; }
+	const std::string& GetFilename() const { return this->filename; }
+	int GetLogVerbosity() const { return this->logVerbosity; }
 
 private:
 	static bool TryParseSize(const std::string& str, std::function<bool(const std::string&, const std::string&)> parseFunc);
