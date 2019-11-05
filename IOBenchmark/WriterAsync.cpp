@@ -108,7 +108,7 @@ WriterAsync::WriterAsync() :
 	if (h == INVALID_HANDLE_VALUE)
 	{
 		stringstream ss;
-		ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << ".";
+		ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << "\".";
 		auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());;
 		excp.SetLastError(GetLastError());
 		throw excp;

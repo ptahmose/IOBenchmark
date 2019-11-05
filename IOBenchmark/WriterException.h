@@ -16,7 +16,8 @@ public:
 
 	explicit WriterException(ErrorType type, const std::string& msg) :
 		type(type),
-		error_message(msg)
+		error_message(msg),
+		hresultValid(false)
 	{}
 
 	virtual const char* what() const throw()
@@ -27,6 +28,7 @@ public:
 	void SetHRESULT(HRESULT hr)
 	{
 		this->hresult = hr;
+		this->hresultValid = true;
 	}
 
 	void SetLastError(DWORD dw)
@@ -34,8 +36,18 @@ public:
 		this->SetHRESULT(HRESULT_FROM_WIN32(dw));
 	}
 
+	bool GetIsValidHresult() const
+	{
+		return this->hresultValid;
+	}
+
 	std::string GetOSError()
 	{
+		if (!this->GetIsValidHresult())
+		{
+			return std::string();
+		}
+
 		LPWSTR fmtMsg;
 		DWORD dw = FormatMessageW(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK,
@@ -57,8 +69,7 @@ public:
 
 private:
 	ErrorType type;
-
 	std::string error_message;      ///< Error message
-
+	bool hresultValid;
 	HRESULT hresult;
 };

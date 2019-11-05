@@ -30,16 +30,26 @@ public:
 
 	virtual void WriteLineStdErr(const char* sz)
 	{
-		std::wcout << Utf8ToUtf16(sz) << endl;
+		//std::wcout << Utf8ToUtf16(sz) << endl;
+		auto txt = Utf8ToUtf16(sz);
+		DWORD charsWritten;
+		WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), txt.c_str(), txt.size(), &charsWritten, NULL);
+		WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), L"\r\n", 2, &charsWritten, NULL);
 	}
 
 	virtual void WriteStdOut(const char* sz)
 	{
-		std::wcout << Utf8ToUtf16(sz);
+		//std::wcout << Utf8ToUtf16(sz);
+		auto txt = Utf8ToUtf16(sz);
+		DWORD charsWritten;
+		WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), txt.c_str(), txt.size(), &charsWritten, NULL);
 	}
 
 	virtual void WriteStdErr(const char* sz)
 	{
-		std::wcout << Utf8ToUtf16(sz);
+		//std::wcout << Utf8ToUtf16(sz);
+		auto txt = Utf8ToUtf16(sz);
+		DWORD charsWritten;
+		WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), txt.c_str(), txt.size(), &charsWritten, NULL);
 	}
 };
