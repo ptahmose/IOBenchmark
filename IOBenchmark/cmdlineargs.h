@@ -21,6 +21,7 @@ public:
 	std::uint64_t GetFileSize() const { return this->fileSize; }
 	const std::string& GetFilename() const { return this->filename; }
 	int GetLogVerbosity() const { return this->logVerbosity; }
+	IWriter::WriterType GetWriterType() { return this->writerType; }
 
 private:
 	static bool TryParseSize(const std::string& str, std::function<bool(const std::string&, const std::string&)> parseFunc);

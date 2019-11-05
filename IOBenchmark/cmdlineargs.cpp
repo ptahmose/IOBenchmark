@@ -16,7 +16,8 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 	std::unordered_map<std::string, IWriter::WriterType> map{
 	   {"default", IWriter::WriterType::SimpleSync},
 	   {"sync", IWriter::WriterType::SimpleSync},
-	   {"async", IWriter::WriterType::Async}};
+	   {"async", IWriter::WriterType::Async},
+	   {"async2", IWriter::WriterType::Async2}};
 
 	args::ArgumentParser parser("IOBenchmark");
 	args::ValueFlag<string> blocksizeString(parser, "blocksize", "The blocksize", { 'b',"blocksize" });

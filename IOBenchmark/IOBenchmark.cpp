@@ -41,9 +41,7 @@ int main()
 	ss << "Outputfile is \"" << cmdlineArgs.GetFilename() << "\".";
 	conout->WriteLineStdOutString(ss.str());
 
-	conout->WriteLineStdOutString("Another line");
-
-	shared_ptr<IWriter> writer = IWriter::CreateInstance(IWriter::WriterType::Async);
+	shared_ptr<IWriter> writer = IWriter::CreateInstance(cmdlineArgs.GetWriterType());
 
 	IWriter::WriterOptions writerOptions;
 	writerOptions.blkSize = cmdlineArgs.GetBlkSize();

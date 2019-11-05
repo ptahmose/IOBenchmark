@@ -158,11 +158,13 @@
     <ClCompile Include="utf8convert.cpp" />
     <ClCompile Include="WinConsoleOut.h" />
     <ClCompile Include="WriterAsync.cpp" />
+    <ClCompile Include="WriterAsync2.cpp" />
     <ClCompile Include="WriterBasic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="args.hxx" />
     <ClInclude Include="asyncwriter.h" />
+    <ClInclude Include="asyncwriter2.h" />
     <ClInclude Include="Blk.h" />
     <ClInclude Include="cmdlineargs.h" />
     <ClInclude Include="IConsoleOut.h" />
@@ -170,6 +172,7 @@
     <ClInclude Include="timeit.h" />
     <ClInclude Include="utf8convert.h" />
     <ClInclude Include="WriterAsync.h" />
+    <ClInclude Include="WriterAsync2.h" />
     <ClInclude Include="WriterBasic.h" />
     <ClInclude Include="WriterException.h" />
   </ItemGroup>

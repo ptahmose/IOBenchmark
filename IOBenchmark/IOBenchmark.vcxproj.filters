@@ -36,6 +36,9 @@
     <ClCompile Include="WinConsoleOut.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="WriterAsync2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineargs.h">
@@ -69,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="IConsoleOut.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="asyncwriter2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WriterAsync2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

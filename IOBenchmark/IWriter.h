@@ -13,7 +13,8 @@ public:
 	{
 		Invalid,
 		SimpleSync,
-		Async
+		Async,
+		Async2
 	};
 
 	static std::shared_ptr<IWriter> CreateInstance(WriterType type);

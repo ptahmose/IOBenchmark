@@ -1,6 +1,4 @@
 #pragma once
-
-#pragma once
 #include <vector>
 #include <functional>
 #include "IWriter.h"
@@ -9,35 +7,35 @@
 #include "asyncwriter.h"
 #include "Blk.h"
 
-class AsyncWriter
-{
-private:
-	struct WriteOperationData
-	{
-		ULONGLONG fileOffset;
-		const void* ptrData;
-		DWORD dataSize;
-		std::function<void(const void*)> deleteFunctor;
-	};
-private:
-	HANDLE hFile;
-	int maxNoOfPendingWrites;
-	std::vector< WriteOperationData> writeData;
-	std::vector<OVERLAPPED> overlapped;
-	std::vector<HANDLE> events;
-	std::vector<bool> activeWrites;
-	int noOfActiveWrites;
-public:
-	AsyncWriter(HANDLE h, int maxNoOfPendingWrites);
-
-	bool AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize, std::function<void(const void*)> deleteFunctor);
-
-	void WaitUntilSlotsAreAvailable();
-
-	void WaitUntilNoPendingWrites();
-private:
-	int GetFirstEmptySlot();
-};
+//class AsyncWriter
+//{
+//private:
+//	struct WriteOperationData
+//	{
+//		ULONGLONG fileOffset;
+//		const void* ptrData;
+//		DWORD dataSize;
+//		std::function<void(const void*)> deleteFunctor;
+//	};
+//private:
+//	HANDLE hFile;
+//	int maxNoOfPendingWrites;
+//	std::vector< WriteOperationData> writeData;
+//	std::vector<OVERLAPPED> overlapped;
+//	std::vector<HANDLE> events;
+//	std::vector<bool> activeWrites;
+//	int noOfActiveWrites;
+//public:
+//	AsyncWriter(HANDLE h, int maxNoOfPendingWrites);
+//
+//	bool AddWrite(ULONGLONG offset, const void* ptrData, DWORD dataSize, std::function<void(const void*)> deleteFunctor);
+//
+//	void WaitUntilSlotsAreAvailable();
+//
+//	void WaitUntilNoPendingWrites();
+//private:
+//	int GetFirstEmptySlot();
+//};
 
 class WriterAsync : public IWriter
 {
