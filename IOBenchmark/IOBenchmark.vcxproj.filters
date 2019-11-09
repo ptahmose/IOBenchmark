@@ -80,5 +80,8 @@
     <ClInclude Include="WriterAsync2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="propertybag.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

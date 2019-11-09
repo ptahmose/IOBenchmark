@@ -11,394 +11,376 @@ template <class tData, class tEnv = AsyncWriterNullEnv>
 class AsyncWriter3
 {
 private:
-	struct WriteOperationData
-	{
-		ULONGLONG fileOffset;
-		std::shared_ptr<tData> data;
-	};
+    struct WriteOperationData
+    {
+        ULONGLONG fileOffset;
+        std::shared_ptr<tData> data;
+    };
 
-	struct ErrorState
-	{
-		ErrorState() : isInErrorState(false) {}
-		bool isInErrorState;
-		std::string information;
-		DWORD lastErrorCode;
-	};
+    struct ErrorState
+    {
+        ErrorState() : isInErrorState(false) {}
+        bool isInErrorState;
+        std::string information;
+        DWORD lastErrorCode;
+    };
 
-	struct NullEnv
-	{
-		void Assert(bool, const char* sz) {}
-	};
+    struct NullEnv
+    {
+        void Assert(bool, const char* sz) {}
+    };
 private:
-	tEnv env;
-	ErrorState errorState;
-	HANDLE hFile;
-	int maxNoOfPendingWrites;
-	std::uint64_t maxPendingBytes;
-	std::vector<WriteOperationData> writeData;
-	std::vector<OVERLAPPED> overlapped;
-	std::vector<HANDLE> events;
-	std::vector<bool> activeWrites;
-	int noOfActiveWrites;
-	std::uint64_t pendingBytes;
+    tEnv env;
+    ErrorState errorState;
+    HANDLE hFile;
+    int maxNoOfPendingWrites;
+    std::uint64_t maxPendingBytes;
+    std::vector<WriteOperationData> writeData;
+    std::vector<OVERLAPPED> overlapped;
+    std::vector<bool> activeWrites;
+    int noOfActiveWrites;
+    std::uint64_t pendingBytes;
 
 public:
-	AsyncWriter3(HANDLE h, int maxNoOfPendingWrites) :
-		AsyncWriter3(tEnv(), h, maxNoOfPendingWrites)
-	{
-	}
+    AsyncWriter3(HANDLE h, int maxNoOfPendingWrites) :
+        AsyncWriter3(tEnv(), h, maxNoOfPendingWrites)
+    {
+    }
 
-	AsyncWriter3(tEnv env, HANDLE h, int maxNoOfPendingWrites) :
-		AsyncWriter3(env, h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
-	{
-	}
+    AsyncWriter3(tEnv env, HANDLE h, int maxNoOfPendingWrites) :
+        AsyncWriter3(env, h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
+    {
+    }
 
-	AsyncWriter3(tEnv env, HANDLE h, int maxNoOfPendingWrites, std::uint64_t maxPendingBytes) :
-		env(env),
-		hFile(h),
-		writeData(maxNoOfPendingWrites),
-		overlapped(maxNoOfPendingWrites),
-		activeWrites(maxNoOfPendingWrites, false),
-		events(maxNoOfPendingWrites, NULL),
-		noOfActiveWrites(0),
-		maxNoOfPendingWrites(maxNoOfPendingWrites),
-		maxPendingBytes(maxPendingBytes),
-		pendingBytes(0)
-	{
-		for (int i = 0; i < maxNoOfPendingWrites; ++i)
-		{
-			ZeroMemory(&(this->overlapped[i]), sizeof(OVERLAPPED));
-			this->events[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
+    AsyncWriter3(tEnv env, HANDLE h, int maxNoOfPendingWrites, std::uint64_t maxPendingBytes) :
+        env(env),
+        hFile(h),
+        writeData(maxNoOfPendingWrites),
+        overlapped(maxNoOfPendingWrites),
+        activeWrites(maxNoOfPendingWrites, false),
+        noOfActiveWrites(0),
+        maxNoOfPendingWrites(maxNoOfPendingWrites),
+        maxPendingBytes(maxPendingBytes),
+        pendingBytes(0)
+    {
+        for (int i = 0; i < maxNoOfPendingWrites; ++i)
+        {
+            ZeroMemory(&(this->overlapped[i]), sizeof(OVERLAPPED));
+        }
+    }
 
-			if (this->events[i] == NULL)
-			{
-				this->CloseEventHandles();
-				AsyncWriterException excp(AsyncWriterException::Type::Intialization, "Error creating events");
-				excp.SetLastError(GetLastError());
-				throw excp;
-			}
-		}
-	}
+    ~AsyncWriter3()
+    {
+        if (this->AreWritesPending())
+        {
+            this->CancelPendingWrites();
+            this->WaitUntilNoPendingWrites();
+        }
 
-	~AsyncWriter3()
-	{
-		if (this->AreWritesPending())
-		{
-			this->CancelPendingWrites();
-			this->WaitUntilNoPendingWrites();
-		}
+        this->ClearAllFinishedSlots();
+    }
 
-		this->ClearAllFinishedSlots();
+    bool IsInErrorState() const
+    {
+        return this->errorState.isInErrorState;
+    }
 
-		this->CloseEventHandles();
-	}
+    /// Determine if we the are pending write operations.
+    /// \returns True if there are pending write operations, false if not.
+    bool AreWritesPending() const
+    {
+        return this->noOfActiveWrites > 0;
+    }
 
-	bool IsInErrorState() const
-	{
-		return this->errorState.isInErrorState;
-	}
+    /// Gets number of pending write operations.
+    /// \returns The number of pending write operations.
+    int GetNumberOfPendingWrites() const
+    {
+        return this->noOfActiveWrites;
+    }
 
-	/// Determine if we the are pending write operations.
-	/// \returns True if there are pending write operations, false if not.
-	bool AreWritesPending() const
-	{
-		return this->noOfActiveWrites > 0;
-	}
+    /// Gets the sum of bytes which are pending to be written.
+    /// \returns The sum of pending bytes to be written.
+    std::uint64_t GetPendingBytesToBeWritten() const
+    {
+        return this->pendingBytes;
+    }
 
-	/// Gets number of pending write operations.
-	/// \returns The number of pending write operations.
-	int GetNumberOfPendingWrites() const
-	{
-		return this->noOfActiveWrites;
-	}
+    /// Adds a 'data'-object to be written.
+    /// \exception lastError Raised when a last error condition occurs.
+    /// \param offset The file offset at which the data is to be written.
+    /// \param data   The  'data'-object.
+    /// \returns True if it succeeds, false if it fails.
+    bool AddWrite(ULONGLONG offset, std::shared_ptr<tData> data)
+    {
+        if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
+        {
+            return false;
+        }
 
-	/// Gets the sum of bytes which are pending to be written.
-	/// \returns The sum of pending bytes to be written.
-	std::uint64_t GetPendingBytesToBeWritten() const
-	{
-		return this->pendingBytes;
-	}
+        if (this->maxNoOfPendingWrites != (numeric_limits<uint64_t>::max)())
+        {
+            auto size = data->size();
+            if (size < this->maxPendingBytes)
+            {
+                if (this->pendingBytes + size > this->maxPendingBytes)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                // if the size of this Write by itself exceeds the "maxPendingBytes" value, we deal with this
+                // in the following way - we allow the write if it is the only currently active write operation
+                if (this->AreWritesPending())
+                {
+                    return false;
+                }
+            }
+        }
 
-	/// Adds a 'data'-object to be written.
-	/// \exception lastError Raised when a last error condition occurs.
-	/// \param offset The file offset at which the data is to be written.
-	/// \param data   The  'data'-object.
-	/// \returns True if it succeeds, false if it fails.
-	bool AddWrite(ULONGLONG offset, std::shared_ptr<tData> data)
-	{
-		if (this->noOfActiveWrites == this->maxNoOfPendingWrites)
-		{
-			return false;
-		}
+        int idxOfEmptySlot = this->GetFirstEmptySlot();
 
-		if (this->maxNoOfPendingWrites != (numeric_limits<uint64_t>::max)())
-		{
-			auto size = data->size();
-			if (size < this->maxPendingBytes)
-			{
-				if (this->pendingBytes + size > this->maxPendingBytes)
-				{
-					return false;
-				}
-			}
-			else
-			{
-				// if the size of this Write by itself exceeds the "maxPendingBytes" value, we deal with this
-				// in the following way - we allow the write if it is the only currently active write operation
-				if (this->AreWritesPending())
-				{
-					return false;
-				}
-			}
-		}
+        ZeroMemory(&(this->overlapped[idxOfEmptySlot]), sizeof(OVERLAPPED));
+        this->overlapped[idxOfEmptySlot].Offset = (DWORD)offset;
+        this->overlapped[idxOfEmptySlot].OffsetHigh = (DWORD)(offset >> 32);
+        this->overlapped[idxOfEmptySlot].hEvent = this;
 
-		int idxOfEmptySlot = this->GetFirstEmptySlot();
+        this->writeData[idxOfEmptySlot].fileOffset = offset;
+        this->writeData[idxOfEmptySlot].data = data;
 
-		ZeroMemory(&(this->overlapped[idxOfEmptySlot]), sizeof(OVERLAPPED));
-		this->overlapped[idxOfEmptySlot].Offset = (DWORD)offset;
-		this->overlapped[idxOfEmptySlot].OffsetHigh = (DWORD)(offset >> 32);
-		this->overlapped[idxOfEmptySlot].hEvent = this;
+        BOOL B = WriteFileEx(
+            this->hFile,
+            data->operator()(),
+            data->size(),
+            &this->overlapped[idxOfEmptySlot],
+            IoCompletionRoutine
+        );
+        if (B == FALSE)
+        {
+            DWORD lastError = GetLastError();
+            AsyncWriterException excp(AsyncWriterException::Type::WriteError, "Error writing data");
+            excp.SetLastError(lastError);
+            throw lastError;
+        }
 
-		// does not seem to be necessary, the event is reset automatically (-> https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile )
-		//ResetEvent(this->overlapped[idxOfEmptySlot].hEvent);
+        this->activeWrites[idxOfEmptySlot] = true;
+        this->noOfActiveWrites++;
+        this->pendingBytes += data->size();
 
-		this->writeData[idxOfEmptySlot].fileOffset = offset;
-		this->writeData[idxOfEmptySlot].data = data;
+        return true;
+    }
 
-		BOOL B = WriteFileEx(
-			this->hFile,
-			data->operator()(),
-			data->size(),
-			&this->overlapped[idxOfEmptySlot],
-			IoCompletionRoutine
-		);
-		if (B == FALSE)
-		{
-			DWORD lastError = GetLastError();
-			switch (lastError)
-			{
-			case ERROR_IO_PENDING:
-				break;
-			default:
-				AsyncWriterException excp(AsyncWriterException::Type::WriteError, "Error writing data");
-				excp.SetLastError(lastError);
-				throw lastError;
-			}
-		}
+    void WaitUntilSlotIsAvailable()
+    {
+        if (this->noOfActiveWrites < this->maxNoOfPendingWrites)
+        {
+            return;
+        }
 
-		this->activeWrites[idxOfEmptySlot] = true;
-		this->noOfActiveWrites++;
-		this->pendingBytes += data->size();
+        for (; ;)
+        {
+            DWORD dw = SleepEx(INFINITE, TRUE);
 
-		return true;
-	}
+            if (*((volatile decltype(this->noOfActiveWrites)*)(&this->noOfActiveWrites)) < this->maxNoOfPendingWrites)
+            {
+                break;
+            }
+        }
 
-	void WaitUntilSlotIsAvailable()
-	{
-		if (this->noOfActiveWrites < this->maxNoOfPendingWrites)
-		{
-			return;
-		}
+        /*	DWORD dw = WaitForMultipleObjects(this->noOfActiveWrites, &this->events[0], FALSE, INFINITE);
 
-		for (; this->noOfActiveWrites >= this->maxNoOfPendingWrites;)
-		{
-			DWORD dw = SleepEx(INFINITE, TRUE);
-		}
+            if (!(dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + this->noOfActiveWrites))
+            {
+                AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
+                if (dw == WAIT_FAILED)
+                {
+                    excp.SetLastError(GetLastError());
+                }
 
-		/*	DWORD dw = WaitForMultipleObjects(this->noOfActiveWrites, &this->events[0], FALSE, INFINITE);
+                throw excp;
+            }
 
-			if (!(dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + this->noOfActiveWrites))
-			{
-				AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
-				if (dw == WAIT_FAILED)
-				{
-					excp.SetLastError(GetLastError());
-				}
+            int idxOfWriteOperationCompleted = dw - WAIT_OBJECT_0;
+            this->ClearWrite(idxOfWriteOperationCompleted);*/
+    }
 
-				throw excp;
-			}
+    int ClearAllFinishedSlots()
+    {
+      /*  if (this->noOfActiveWrites == 0)
+        {
+            return 0;
+        }*/
 
-			int idxOfWriteOperationCompleted = dw - WAIT_OBJECT_0;
-			this->ClearWrite(idxOfWriteOperationCompleted);*/
-		return;
-	}
+        //auto handlesAndIndices = this->GetUnfinishedWritesEventHandles();
 
-	int ClearAllFinishedSlots()
-	{
-		if (this->noOfActiveWrites == 0)
-		{
-			return 0;
-		}
+        //int pendingWritesFinished = 0;
+        //for (;;)
+        //{
+        //    DWORD dw = WaitForMultipleObjects((DWORD)std::get<0>(handlesAndIndices).size(), &std::get<0>(handlesAndIndices)[0], FALSE, 0);
 
-		auto handlesAndIndices = this->GetUnfinishedWritesEventHandles();
+        //    if (dw == WAIT_TIMEOUT)
+        //    {
+        //        break;
+        //    }
 
-		int pendingWritesFinished = 0;
-		for (;;)
-		{
-			DWORD dw = WaitForMultipleObjects((DWORD)std::get<0>(handlesAndIndices).size(), &std::get<0>(handlesAndIndices)[0], FALSE, 0);
+        //    if (dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + std::get<0>(handlesAndIndices).size())
+        //    {
+        //        pendingWritesFinished++;
+        //        int idx = dw - WAIT_OBJECT_0;
+        //        int idxOfFinishedWrite = std::get<1>(handlesAndIndices)[idx];
+        //        this->ClearWrite(idxOfFinishedWrite);
+        //        if (std::get<0>(handlesAndIndices).size() > 1)
+        //        {
+        //            std::get<0>(handlesAndIndices).erase(std::get<0>(handlesAndIndices).begin() + idx);
+        //            std::get<1>(handlesAndIndices).erase(std::get<1>(handlesAndIndices).begin() + idx);
+        //            continue;
+        //        }
+        //        else
+        //        {
+        //            break;
+        //        }
+        //    }
 
-			if (dw == WAIT_TIMEOUT)
-			{
-				break;
-			}
+        //    // everything else is an error
+        //    AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
+        //    if (dw == WAIT_FAILED)
+        //    {
+        //        excp.SetLastError(GetLastError());
+        //    }
 
-			if (dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + std::get<0>(handlesAndIndices).size())
-			{
-				pendingWritesFinished++;
-				int idx = dw - WAIT_OBJECT_0;
-				int idxOfFinishedWrite = std::get<1>(handlesAndIndices)[idx];
-				this->ClearWrite(idxOfFinishedWrite);
-				if (std::get<0>(handlesAndIndices).size() > 1)
-				{
-					std::get<0>(handlesAndIndices).erase(std::get<0>(handlesAndIndices).begin() + idx);
-					std::get<1>(handlesAndIndices).erase(std::get<1>(handlesAndIndices).begin() + idx);
-					continue;
-				}
-				else
-				{
-					break;
-				}
-			}
+        //    throw excp;
+        //}
 
-			// everything else is an error
-			AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
-			if (dw == WAIT_FAILED)
-			{
-				excp.SetLastError(GetLastError());
-			}
+        //return pendingWritesFinished;
+        return 0;
+    }
 
-			throw excp;
-		}
+    void WaitUntilNoPendingWrites()
+    {
+        if (this->noOfActiveWrites == 0)
+        {
+            return;
+        }
 
-		return pendingWritesFinished;
-	}
+        for (; ;)
+        {
+            DWORD dw = SleepEx(INFINITE, TRUE);
 
-	void WaitUntilNoPendingWrites()
-	{
-		if (this->noOfActiveWrites == 0)
-		{
-			return;
-		}
+            if (*((volatile decltype(this->noOfActiveWrites)*)(&this->noOfActiveWrites)) == 0)
+            {
+                break;
+            }
+        }
 
-		auto handlesAndIndices = this->GetUnfinishedWritesEventHandles();
-		DWORD dw = WaitForMultipleObjects((DWORD)std::get<0>(handlesAndIndices).size(), &std::get<0>(handlesAndIndices)[0], TRUE, INFINITE);
-		if (dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + std::get<0>(handlesAndIndices).size())
-		{
-			return;
-		}
+        /*auto handlesAndIndices = this->GetUnfinishedWritesEventHandles();
+        DWORD dw = WaitForMultipleObjects((DWORD)std::get<0>(handlesAndIndices).size(), &std::get<0>(handlesAndIndices)[0], TRUE, INFINITE);
+        if (dw >= WAIT_OBJECT_0 && dw <= WAIT_OBJECT_0 + std::get<0>(handlesAndIndices).size())
+        {
+            return;
+        }
 
-		// everything else is an error
-		AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
-		if (dw == WAIT_FAILED) 
-		{
-			excp.SetLastError(GetLastError());
-		}
+        // everything else is an error
+        AsyncWriterException excp(AsyncWriterException::Type::WaitError, "Error waiting for pending operations");
+        if (dw == WAIT_FAILED)
+        {
+            excp.SetLastError(GetLastError());
+        }
 
-		throw excp;
-	}
+        throw excp;*/
+    }
 
-	bool CancelPendingWrites()
-	{
-		if (!this->AreWritesPending())
-		{
-			return false;
-		}
+    bool CancelPendingWrites()
+    {
+        if (!this->AreWritesPending())
+        {
+            return false;
+        }
 
-		BOOL B = CancelIo(this->hFile);
-		if (B == FALSE)
-		{
-			AsyncWriterException excp(AsyncWriterException::Type::CancellationError, "Error cancelling pending operations");
-			excp.SetLastError(GetLastError());
-			throw excp;
-		}
+        BOOL B = CancelIo(this->hFile);
+        if (B == FALSE)
+        {
+            AsyncWriterException excp(AsyncWriterException::Type::CancellationError, "Error cancelling pending operations");
+            excp.SetLastError(GetLastError());
+            throw excp;
+        }
 
-		return true;
-	}
+        return true;
+    }
 private:
-	static void IoCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
-	{
-		AsyncWriter3* ptr = (AsyncWriter3*)(lpOverlapped->hEvent);
-		auto idx = std::distance(&ptr->overlapped[0], lpOverlapped);
-		ptr->IoCompletionRoutine(dwErrorCode, dwNumberOfBytesTransfered, idx);
-	}
+    static void IoCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+    {
+        AsyncWriter3* ptr = (AsyncWriter3*)(lpOverlapped->hEvent);
+        auto idx = std::distance(&ptr->overlapped[0], lpOverlapped);
+        ptr->IoCompletionRoutine(dwErrorCode, dwNumberOfBytesTransfered, idx);
+    }
 
-	void IoCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, int index)
-	{
-		//	this->overlapped.index
-		this->ClearWrite(index);
-	}
+    void IoCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, int index)
+    {
+        //	this->overlapped.index
+        this->ClearWrite(index);
+    }
 
-	int GetFirstEmptySlot()
-	{
-		for (int i = 0; i < maxNoOfPendingWrites; ++i)
-		{
-			if (this->activeWrites[i] == false)
-			{
-				return i;
-			}
-		}
+    int GetFirstEmptySlot()
+    {
+        for (int i = 0; i < maxNoOfPendingWrites; ++i)
+        {
+            if (this->activeWrites[i] == false)
+            {
+                return i;
+            }
+        }
 
-		return -1;
-	}
+        return -1;
+    }
 
-	void SetErrorState(std::string message, DWORD lastError)
-	{
-		if (!this->errorState.isInErrorState)
-		{
-			this->errorState.isInErrorState = true;
-			this->errorState.information = message;
-			this->errorState.lastErrorCode = lastError;
-		}
-	}
+    void SetErrorState(std::string message, DWORD lastError)
+    {
+        if (!this->errorState.isInErrorState)
+        {
+            this->errorState.isInErrorState = true;
+            this->errorState.information = message;
+            this->errorState.lastErrorCode = lastError;
+        }
+    }
 
-	std::tuple<std::vector<HANDLE>, std::vector<int>> GetUnfinishedWritesEventHandles()
-	{
-		std::vector<HANDLE> handles;
-		std::vector<int> indices;
-		handles.reserve(this->noOfActiveWrites);
-		indices.reserve(this->noOfActiveWrites);
-		for (int i = 0; i < this->maxNoOfPendingWrites; ++i)
-		{
-			if (this->activeWrites[i] == true)
-			{
-				handles.push_back(this->events[i]);
-				indices.push_back(i);
-			}
-		}
+    //std::tuple<std::vector<HANDLE>, std::vector<int>> GetUnfinishedWritesEventHandles()
+    //{
+    //    std::vector<HANDLE> handles;
+    //    std::vector<int> indices;
+    //    handles.reserve(this->noOfActiveWrites);
+    //    indices.reserve(this->noOfActiveWrites);
+    //    for (int i = 0; i < this->maxNoOfPendingWrites; ++i)
+    //    {
+    //        if (this->activeWrites[i] == true)
+    //        {
+    //            handles.push_back(this->events[i]);
+    //            indices.push_back(i);
+    //        }
+    //    }
 
-		return std::make_tuple(handles, indices);
-	}
+    //    return std::make_tuple(handles, indices);
+    //}
 
-	void ClearWrite(int idxOfWriteOperationCompleted)
-	{
-		this->pendingBytes -= this->writeData[idxOfWriteOperationCompleted].data->size();
-		this->writeData[idxOfWriteOperationCompleted].data.reset();
-		this->activeWrites[idxOfWriteOperationCompleted] = false;
-		this->noOfActiveWrites--;
+    void ClearWrite(int idxOfWriteOperationCompleted)
+    {
+        this->pendingBytes -= this->writeData[idxOfWriteOperationCompleted].data->size();
+        this->writeData[idxOfWriteOperationCompleted].data.reset();
+        this->activeWrites[idxOfWriteOperationCompleted] = false;
+        this->noOfActiveWrites--;
 
-		DWORD bytesTransfered;
-		BOOL B = GetOverlappedResult(
-			this->hFile,
-			&this->overlapped[idxOfWriteOperationCompleted],
-			&bytesTransfered,
-			FALSE);
-		if (!B)
-		{
-			std::stringstream ss;
-			ss << "OverlappedResult for write at offset " << ((std::uint64_t(this->overlapped[idxOfWriteOperationCompleted].OffsetHigh) << 32) | std::uint64_t(this->overlapped[idxOfWriteOperationCompleted].Offset)) << ".";
-			this->SetErrorState(ss.str(), GetLastError());
-		}
-		// TODO: deal with errors...
-	}
-
-	void CloseEventHandles()
-	{
-		for (int i = 0; i < this->maxNoOfPendingWrites; ++i)
-		{
-			if (this->events[i] != NULL)
-			{
-				CloseHandle(this->events[i]);
-			}
-		}
-	}
+        DWORD bytesTransfered;
+        BOOL B = GetOverlappedResult(
+            this->hFile,
+            &this->overlapped[idxOfWriteOperationCompleted],
+            &bytesTransfered,
+            FALSE);
+        if (!B)
+        {
+            std::stringstream ss;
+            ss << "OverlappedResult for write at offset " << ((std::uint64_t(this->overlapped[idxOfWriteOperationCompleted].OffsetHigh) << 32) | std::uint64_t(this->overlapped[idxOfWriteOperationCompleted].Offset)) << ".";
+            this->SetErrorState(ss.str(), GetLastError());
+        }
+        // TODO: deal with errors...
+    }
 };

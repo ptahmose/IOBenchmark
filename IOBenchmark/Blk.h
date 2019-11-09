@@ -19,7 +19,7 @@ public:
 
 	CBlk(std::uint32_t blkSize, int startValue) : CBlk(blkSize)
 	{
-		//this->FillWithIntegerCounting(startValue);
+		this->FillWithIntegerCounting(startValue);
 	}
 
 	~CBlk()

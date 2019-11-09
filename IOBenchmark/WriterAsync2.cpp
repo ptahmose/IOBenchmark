@@ -42,10 +42,10 @@ WriterAsync2::WriterAsync2() :
 
 /*virtual*/void WriterAsync2::DoIt()
 {
-	int startValue = 0;
+	int startValueForFill = 0;
 	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
-		auto blk = make_shared<Data>(this->options.blkSize, startValue);
+		auto blk = make_shared<Data>(this->options.blkSize, startValueForFill++);
 
 		for (;;)
 		{

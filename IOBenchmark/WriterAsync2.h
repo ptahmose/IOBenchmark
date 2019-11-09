@@ -3,7 +3,6 @@
 #include <functional>
 #include "IWriter.h"
 #include <Windows.h>
-
 #include "asyncwriter2.h"
 #include "Blk.h"
 
@@ -21,7 +20,7 @@ private:
 		std::uint32_t size() const { return this->blk.GetDataSize(); }
 	};
 private:
-	static const int MaxPendingOperationCount = 5;
+	static const int MaxPendingOperationCount = 1024;
 	std::unique_ptr<AsyncWriter3<Data>> writer;
 	HANDLE hFile;
 	WriterOptions options;
