@@ -12,6 +12,7 @@
 #include "WriterBasic.h"
 #include "timeit.h"
 #include "WinConsoleOut.h"
+#include "propertybag.h"
 
 using namespace std;
 
@@ -40,6 +41,8 @@ int main()
 	stringstream ss;
 	ss << "Outputfile is \"" << cmdlineArgs.GetFilename() << "\".";
 	conout->WriteLineStdOutString(ss.str());
+
+    CPropertyBag writerPropBag;
 
 	shared_ptr<IWriter> writer = IWriter::CreateInstance(cmdlineArgs.GetWriterType());
 

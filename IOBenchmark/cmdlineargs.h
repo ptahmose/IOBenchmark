@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include "IWriter.h"
+#include "propertybag.h"
 
 class CCmdlineArgs
 {
@@ -13,6 +14,7 @@ private:
 	std::string filename;
 	IWriter::WriterType writerType;
 	int logVerbosity;
+    std::shared_ptr<CPropertyBag> writerSpecificPropBag;
 public:
 	CCmdlineArgs();
 	bool ParseArguments(int argc, char** argv);
@@ -22,8 +24,11 @@ public:
 	const std::string& GetFilename() const { return this->filename; }
 	int GetLogVerbosity() const { return this->logVerbosity; }
 	IWriter::WriterType GetWriterType() { return this->writerType; }
+    std::shared_ptr<IPropertyBagRead> GetWriterSpecificPropertyBag() const { return this->writerSpecificPropBag; }
 
 private:
+    bool ParseFileWriterSpecificOptions(const std::string& str);
+
 	static bool TryParseSize(const std::string& str, std::function<bool(const std::string&, const std::string&)> parseFunc);
 	static bool TryParseSizeUint32(const std::string& str, std::uint32_t& size);
 	static bool TryParseSizeUint64(const std::string& str, std::uint64_t& size);

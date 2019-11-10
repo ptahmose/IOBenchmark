@@ -1,10 +1,13 @@
 #include "cmdlineargs.h"
+#include "json.hpp"
 #include "args.hxx"
 #include <string>
 #include <iostream>
 #include <regex>
+#include <intrin.h>
 
 using namespace std;
+using namespace nlohmann;
 
 CCmdlineArgs::CCmdlineArgs()
 	: blkSize(0),fileSize(0),writerType(IWriter::WriterType::Invalid)
@@ -22,6 +25,7 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 	args::ArgumentParser parser("IOBenchmark");
 	args::ValueFlag<string> blocksizeString(parser, "blocksize", "The blocksize", { 'b',"blocksize" });
 	args::ValueFlag<string> filesizeString(parser, "filesize", "The filesize", { 'f',"filesize" });
+    args::ValueFlag<string> writerSpecificParamsString(parser, "params", "writer specific parameters", { 'p',"params" });
 	args::Positional<std::string> filenameArg(parser, "filename", "The filename");
 	args::MapFlag<std::string, IWriter::WriterType> writerType(parser, "WriterType", "Type of writer", { 'w', "writertype" }, map);
 	try
@@ -68,6 +72,11 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 	{
 		this->writerType = args::get(writerType);
 	}
+
+    if (writerSpecificParamsString)
+    {
+        this->ParseFileWriterSpecificOptions(args::get(writerSpecificParamsString));
+    }
 
 	if (filenameArg)
 	{
@@ -281,6 +290,9 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 
 /*static*/ void CCmdlineArgs::Mult64to128(uint64_t op1, uint64_t op2, uint64_t* hi, uint64_t* lo)
 {
+    *lo = _umul128(op1, op2, hi);
+    /*
+    // portable version
 	uint64_t u1 = (op1 & 0xffffffff);
 	uint64_t v1 = (op2 & 0xffffffff);
 	uint64_t t = (u1 * v1);
@@ -305,4 +317,42 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 	{
 		*lo = (t << 32) + w3;
 	}
+    */
+}
+
+bool CCmdlineArgs::ParseFileWriterSpecificOptions(const std::string& str)
+{
+    this->writerSpecificPropBag = make_shared<CPropertyBag>();
+    try
+    {
+        auto json = json::parse(str);
+        for (auto& [key, value] : json.items()) 
+        {
+            if (value.is_boolean())
+            {
+                
+            }
+            else if (value.is_number_integer())
+            {
+                std::int64_t n = value.get<int>();
+                //this->writerSpecificPropBag->AddItem_Int32(key, value());
+            }
+            else if (value.is_string())
+            {
+
+            }
+            else
+            {
+                return false;
+            }
+            //std::cout << key << " : " << value << "\n";
+        }
+
+    }
+    catch (json::parse_error & e)
+    {
+        return false;
+    }
+
+    return true;
 }

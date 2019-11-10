@@ -171,6 +171,7 @@
     <ClInclude Include="cmdlineargs.h" />
     <ClInclude Include="IConsoleOut.h" />
     <ClInclude Include="IWriter.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="propertybag.h" />
     <ClInclude Include="timeit.h" />
     <ClInclude Include="utf8convert.h" />
