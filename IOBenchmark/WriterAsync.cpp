@@ -94,7 +94,7 @@ WriterAsync::WriterAsync() :
 {
 }
 
-/*virtual*/void WriterAsync::Init(const WriterOptions& options)
+/*virtual*/void WriterAsync::Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions)
 {
 	const auto filenameW = Utf8ToUtf16(options.filename);
 	HANDLE h = CreateFileW(

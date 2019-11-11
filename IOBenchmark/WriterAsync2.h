@@ -20,14 +20,14 @@ private:
 		std::uint32_t size() const { return this->blk.GetDataSize(); }
 	};
 private:
-	static const int MaxPendingOperationCount = 1024;
+	const int DefaultMaxPendingOperationCount = 32;
 	std::unique_ptr<AsyncWriter3<Data>> writer;
 	HANDLE hFile;
 	WriterOptions options;
 public:
 	WriterAsync2();
 
-	virtual void Init(const WriterOptions& options);
+	virtual void Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions);
 
 	virtual void DoIt();
 

@@ -17,9 +17,18 @@ private:
     std::map<std::string, std::any> properties;
     //std::vector<std::tuple<std::string, std::any>> properties;
 public:
+    void AddItem_String(const std::string& str, std::string s)
+    {
+        this->properties[str] = std::any(s);
+    }
+
+    void AddItem_Bool(const std::string& str, bool b)
+    {
+        this->properties[str] = std::any(b);
+    }
+
     void AddItem_Int32(const std::string& str, int v)
     {
-        //this->properties.push_back(std::make_tuple(str, std::any(v)));
         this->properties[str] = std::any(v);
     }
 

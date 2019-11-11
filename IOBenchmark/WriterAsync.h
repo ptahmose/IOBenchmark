@@ -64,7 +64,7 @@ private:
 public:
 	WriterAsync();
 
-	virtual void Init(const WriterOptions& options);
+	virtual void Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions);
 
 	virtual void DoIt();
 

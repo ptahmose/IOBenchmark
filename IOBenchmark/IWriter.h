@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "WriterException.h"
+#include "propertybag.h"
 
 class IWriter
 {
@@ -26,7 +27,7 @@ public:
 		std::string filename;
 	};
 
-	virtual void Init(const WriterOptions& options) = 0;
+	virtual void Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions) = 0;
 
 	virtual void DoIt() = 0;
 

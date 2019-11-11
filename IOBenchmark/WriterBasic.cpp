@@ -10,7 +10,7 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 {
 }
 
-/*virtual*/void WriterBasic::Init(const WriterOptions& options)
+/*virtual*/void WriterBasic::Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> /*writerSpecificOptions*/)
 {
 	const auto filenameW = Utf8ToUtf16(options.filename);
 	HANDLE h = CreateFileW(

@@ -330,22 +330,23 @@ bool CCmdlineArgs::ParseFileWriterSpecificOptions(const std::string& str)
         {
             if (value.is_boolean())
             {
-                
+                auto b = value.get<bool>();
+                this->writerSpecificPropBag->AddItem_Bool(key, b);
             }
             else if (value.is_number_integer())
             {
-                std::int64_t n = value.get<int>();
-                //this->writerSpecificPropBag->AddItem_Int32(key, value());
+                auto n = value.get<int>();
+                this->writerSpecificPropBag->AddItem_Int32(key, n);
             }
             else if (value.is_string())
             {
-
+                auto s = value.get<string>();
+                this->writerSpecificPropBag->AddItem_String(key, s);
             }
             else
             {
                 return false;
             }
-            //std::cout << key << " : " << value << "\n";
         }
 
     }

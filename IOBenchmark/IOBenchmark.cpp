@@ -42,8 +42,6 @@ int main()
 	ss << "Outputfile is \"" << cmdlineArgs.GetFilename() << "\".";
 	conout->WriteLineStdOutString(ss.str());
 
-    CPropertyBag writerPropBag;
-
 	shared_ptr<IWriter> writer = IWriter::CreateInstance(cmdlineArgs.GetWriterType());
 
 	IWriter::WriterOptions writerOptions;
@@ -52,7 +50,7 @@ int main()
 	writerOptions.filename = cmdlineArgs.GetFilename();
 	try
 	{
-		writer->Init(writerOptions);
+		writer->Init(writerOptions, cmdlineArgs.GetWriterSpecificPropertyBag());
 	}
 	catch (WriterException & excp)
 	{
