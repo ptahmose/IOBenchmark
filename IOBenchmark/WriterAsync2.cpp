@@ -16,6 +16,18 @@ WriterAsync2::WriterAsync2() :
 
 /*virtual*/void WriterAsync2::Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions)
 {
+    int maxPendingOperationsCount = DefaultMaxPendingOperationCount;
+    if (writerSpecificOptions)
+    {
+        if (writerSpecificOptions->TryGetInt("MaxPendingOperations", &maxPendingOperationsCount) == true)
+        {
+            if (maxPendingOperationsCount <= 0)
+            {
+                throw invalid_argument("Parameter 'MaxPendingOperations' must be greater than zero.");
+            }
+        }
+    }
+
 	const auto filenameW = Utf8ToUtf16(options.filename);
 	HANDLE h = CreateFileW(
 		filenameW.c_str(),
@@ -36,12 +48,6 @@ WriterAsync2::WriterAsync2() :
 
 	this->options = options;
 	this->hFile = h;
-
-    int maxPendingOperationsCount = DefaultMaxPendingOperationCount;
-    if (writerSpecificOptions)
-    {
-        writerSpecificOptions->TryGetInt("MaxPendingOperations", &maxPendingOperationsCount);
-    }
 
 	this->writer = make_unique<AsyncWriter3<Data>>(h, maxPendingOperationsCount);
 }

@@ -348,7 +348,6 @@ bool CCmdlineArgs::ParseFileWriterSpecificOptions(const std::string& str)
                 return false;
             }
         }
-
     }
     catch (json::parse_error & e)
     {

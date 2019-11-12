@@ -51,7 +51,7 @@ private:
 		std::uint32_t size() const { return this->blk.GetDataSize(); }
 	};
 private:
-	static const int MaxPendingOperationCount = 5;
+	static const int DefaultMaxPendingOperationCount = 5;
 
 	std::unique_ptr<AsyncWriter2<Data>> writer;
 

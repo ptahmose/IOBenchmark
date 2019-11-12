@@ -52,7 +52,7 @@ int main()
 	{
 		writer->Init(writerOptions, cmdlineArgs.GetWriterSpecificPropertyBag());
 	}
-	catch (WriterException & excp)
+	catch (WriterException& excp)
 	{
 		stringstream ss;
 		ss << "Error when initializing the writer -> " << excp.what();
@@ -66,6 +66,13 @@ int main()
 
 		return -1;
 	}
+    catch (invalid_argument & excp)
+    {
+        stringstream ss;
+        ss << "Error when initializing the writer -> " << excp.what();
+        conout->WriteLineStdErrString(ss.str());
+        return -1;
+    }
 
 	CTimeIt timeit;
 	try

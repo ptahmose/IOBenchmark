@@ -96,28 +96,47 @@ WriterAsync::WriterAsync() :
 
 /*virtual*/void WriterAsync::Init(const WriterOptions& options, std::shared_ptr<IPropertyBagRead> writerSpecificOptions)
 {
-	const auto filenameW = Utf8ToUtf16(options.filename);
-	HANDLE h = CreateFileW(
-		filenameW.c_str(),
-		GENERIC_WRITE,
-		0,
-		NULL,
-		CREATE_NEW,
-		FILE_FLAG_OVERLAPPED,
-		NULL);
-	if (h == INVALID_HANDLE_VALUE)
-	{
-		stringstream ss;
-		ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << "\".";
-		auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());;
-		excp.SetLastError(GetLastError());
-		throw excp;
-	}
+    int maxPendingOperationsCount = DefaultMaxPendingOperationCount;
+    if (writerSpecificOptions)
+    {
+        if (writerSpecificOptions->TryGetInt("MaxPendingOperations", &maxPendingOperationsCount) == true)
+        {
+            if (maxPendingOperationsCount <= 0)
+            {
+                throw invalid_argument("Parameter 'MaxPendingOperations' must be greater than zero.");
+            }
 
-	this->options = options;
-	this->hFile = h;
+            if (maxPendingOperationsCount > MAXIMUM_WAIT_OBJECTS)
+            {
+                stringstream ss;
+                ss << "Parameter 'MaxPendingOperations' must be less than or equal to " << MAXIMUM_WAIT_OBJECTS << ".";
+                throw invalid_argument(ss.str());
+            }
+        }
+    }
 
-	this->writer = make_unique<AsyncWriter2<Data>>(h, MaxPendingOperationCount);
+    const auto filenameW = Utf8ToUtf16(options.filename);
+    HANDLE h = CreateFileW(
+        filenameW.c_str(),
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CREATE_NEW,
+        FILE_FLAG_OVERLAPPED,
+        NULL);
+    if (h == INVALID_HANDLE_VALUE)
+    {
+        stringstream ss;
+        ss << "Error when calling \"CreateFile\" with filename \"" << options.filename << "\".";
+        auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());;
+        excp.SetLastError(GetLastError());
+        throw excp;
+    }
+
+    this->options = options;
+    this->hFile = h;
+
+	this->writer = make_unique<AsyncWriter2<Data>>(h, maxPendingOperationsCount);
 }
 
 /*virtual*/void WriterAsync::DoIt()
