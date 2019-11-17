@@ -22,7 +22,7 @@ unique_ptr<CBlkGenBase> CreateBlkGenUniquePtr(std::size_t type_hashcode, std::ui
     return unique_ptr<CBlkGenBase>();
 }
 
-std::shared_ptr<CBlkGenBase> CreateBlkGenSharedPtr(std::size_t type_hashcode, std::uint32_t blkSize, int state)
+/*std::shared_ptr<CBlkGenBase> CreateBlkGenSharedPtr(std::size_t type_hashcode, std::uint32_t blkSize, int state)
 {
     if (type_hashcode == typeid(CBlkGenZero).hash_code())
     {
@@ -40,4 +40,4 @@ std::shared_ptr<CBlkGenBase> CreateBlkGenSharedPtr(std::size_t type_hashcode, st
     }
 
     return shared_ptr<CBlkGenBase>();
-}
+}*/
