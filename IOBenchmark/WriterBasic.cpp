@@ -41,11 +41,12 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 	for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
 	{
 		DWORD bytesWritten;
-		CBlk blk(this->options.blkSize, startValueForFill++);
+        auto blk = CreateBlkGenUniquePtr(this->options.blkGenHashCode, this->options.blkSize, startValueForFill);
+		//CBlk blk(this->options.blkSize, startValueForFill++);
 		DWORD dw = WriteFile(
 			this->hFile,
-			blk.GetData(),
-			blk.GetDataSize(),
+			blk->GetData(),
+			blk->GetDataSize(),
 			&bytesWritten,
 			NULL);
 		if (dw != TRUE)
@@ -56,6 +57,7 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 		}
 
 		totalBytesWritten += bytesWritten;
+        startValueForFill = blk->NextState();
 	}
 }
 

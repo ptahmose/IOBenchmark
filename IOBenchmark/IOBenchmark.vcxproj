@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Blk.cpp" />
     <ClCompile Include="cmdlineargs.cpp" />
     <ClCompile Include="IOBenchmark.cpp" />
     <ClCompile Include="IWriter.cpp" />

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <Windows.h>
 
 class CBlkGenBase
@@ -79,6 +80,29 @@ public:
     virtual int NextState() const { return this->nextState; }
 };
 
+class CBlkGenCounterUInt32 : public CBlkGenHeapAlloc
+{
+private:
+    int nextState;
+public:
+    CBlkGenCounterUInt32(std::uint32_t blkSize, int state) : CBlkGenHeapAlloc(blkSize, state)
+    {
+        this->Allocate(blkSize, state);
+        uint32_t cnt = (uint32_t)state;
+        uint32_t* p = (uint32_t*)this->ptrData;
+        for (uint32_t i = 0; i < this->blkSize/4; ++i)
+        {
+            p[i] = cnt++;
+        }
+
+        this->nextState = (int)cnt;
+    }
+
+    virtual int NextState() const { return this->nextState; }
+};
+
+std::unique_ptr<CBlkGenBase> CreateBlkGenUniquePtr(std::size_t type_hashcode, std::uint32_t blkSize, int state);
+std::shared_ptr<CBlkGenBase> CreateBlkGenSharedPtr(std::size_t type_hashcode, std::uint32_t blkSize, int state);
 
 class CBlk
 {

@@ -48,6 +48,7 @@ int main()
 	writerOptions.blkSize = cmdlineArgs.GetBlkSize();
 	writerOptions.fileSize = cmdlineArgs.GetFileSize();
 	writerOptions.filename = cmdlineArgs.GetFilename();
+    writerOptions.blkGenHashCode = cmdlineArgs.GetBlockGenTypeHash();
 	try
 	{
 		writer->Init(writerOptions, cmdlineArgs.GetWriterSpecificPropertyBag());
