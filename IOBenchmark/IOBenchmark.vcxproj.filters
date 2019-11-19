@@ -42,6 +42,9 @@
     <ClCompile Include="Blk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WriterAsyncUnbuffered.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineargs.h">
@@ -87,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WriterAsyncUnbuffered.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

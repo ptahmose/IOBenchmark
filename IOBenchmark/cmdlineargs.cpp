@@ -24,7 +24,9 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
        {"default", IWriter::WriterType::SimpleSync},
        {"sync", IWriter::WriterType::SimpleSync},
        {"async", IWriter::WriterType::Async},
-       {"async2", IWriter::WriterType::Async2} };
+       {"async2", IWriter::WriterType::Async2},
+       {"asyncunbuffered", IWriter::WriterType::AsyncUnbuffered}
+      };
 
     args::ArgumentParser parser("IOBenchmark");
     args::ValueFlag<string> blocksizeString(parser, "blocksize", "The blocksize", { 'b',"blocksize" });

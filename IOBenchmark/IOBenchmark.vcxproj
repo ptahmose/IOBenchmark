@@ -162,6 +162,7 @@
     <ClCompile Include="WinConsoleOut.h" />
     <ClCompile Include="WriterAsync.cpp" />
     <ClCompile Include="WriterAsync2.cpp" />
+    <ClCompile Include="WriterAsyncUnbuffered.cpp" />
     <ClCompile Include="WriterBasic.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="utf8convert.h" />
     <ClInclude Include="WriterAsync.h" />
     <ClInclude Include="WriterAsync2.h" />
+    <ClInclude Include="WriterAsyncUnbuffered.h" />
     <ClInclude Include="WriterBasic.h" />
     <ClInclude Include="WriterException.h" />
   </ItemGroup>
