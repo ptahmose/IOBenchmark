@@ -1,4 +1,5 @@
 #include "WriterAsyncUnbuffered.h"
+#include "StorageAlignmentInfo.h"
 
 using namespace std;
 
@@ -41,14 +42,73 @@ WriterAsyncUnbuffered::WriterAsyncUnbuffered() :
         throw excp;
     }
 
-    this->DetermineAlignmentInformation(h,filenameW.c_str());
+    try
+    {
+        this->storageAlignmentInfo = QueryStorageAlignmentInfo(h);
+    }
+    catch (const runtime_error & e)
+    {
+    }
+    //this->DetermineAlignmentInformation(h,filenameW.c_str());
+    // 
+    this->options = options;
+    this->hFile = h;
+
+    this->writer = make_unique<AsyncWriter3<Data>>(h, 16);
 }
 
 /*virtual*/void WriterAsyncUnbuffered::DoIt()
-{}
+{
+    int startValue = 0;
+    for (uint64_t totalBytesWritten = 0; totalBytesWritten < this->options.fileSize;)
+    {
+        auto blk = make_shared<Data>(this->options.blkGenHashCode, this->options.blkSize, startValue++);
+
+        for (;;)
+        {
+            bool b;
+            try
+            {
+                b = this->writer->AddWrite(
+                    totalBytesWritten,
+                    blk);
+            }
+            catch (AsyncWriterException awexcp)
+            {
+                stringstream ss;
+                ss << "Error from AsyncWriter: \"" << awexcp.what() << "\".";
+                auto excp = WriterException(WriterException::ErrorType::APIError, ss.str());
+                throw excp;
+            }
+
+            if (b == false)
+            {
+                this->writer->WaitUntilSlotIsAvailable();
+
+                this->writer->ClearAllFinishedSlots();
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        totalBytesWritten += this->options.blkSize;
+        startValue = blk->BlkGen().NextState();
+    }
+
+    this->writer->WaitUntilNoPendingWrites();
+}
 
 /*virtual*/WriterAsyncUnbuffered::~WriterAsyncUnbuffered()
-{}
+{
+    this->writer.reset();
+
+    if (this->hFile != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(this->hFile);
+    }
+}
 
 
 typedef struct _IO_STATUS_BLOCK 

@@ -45,6 +45,9 @@
     <ClCompile Include="WriterAsyncUnbuffered.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StorageAlignmentInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineargs.h">
@@ -95,5 +98,11 @@
     <ClInclude Include="WriterAsyncUnbuffered.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StorageAlignmentInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="cmd.txt" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,7 @@
+IOBenchmark.exe -b 64ki -f 16Gi  D:\m‰dchenfuﬂball -w sync -p "{\"MaxPendingOperations\":16}" -g Uint32Counter
+
+IOBenchmark.exe -b 64ki -f 16Gi  D:\m‰dchenfuﬂball -w async -p "{\"MaxPendingOperations\":16}" -g Uint32Counter
+
+IOBenchmark.exe -b 64ki -f 16Gi  D:\m‰dchenfuﬂball -w async2 -p "{\"MaxPendingOperations\":16}" -g Uint32Counter
+
+IOBenchmark.exe -b 64ki -f 16Gi  D:\m‰dchenfuﬂball -w asyncunbuffered -p "{\"MaxPendingOperations\":16}" -g Uint32Counter
