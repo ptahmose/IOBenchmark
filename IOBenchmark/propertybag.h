@@ -15,7 +15,6 @@ class CPropertyBag : public  IPropertyBagRead
 {
 private:
     std::map<std::string, std::any> properties;
-    //std::vector<std::tuple<std::string, std::any>> properties;
 public:
     void AddItem_String(const std::string& str, std::string s)
     {
@@ -54,25 +53,5 @@ public:
         }
 
         return false;
-        /*auto i = std::find(this->properties.cbegin(), this->properties.cend(), [&](const std::tuple<std::string, std::any>& e) {return std::get<0>(e) == str; });
-        if (i == this->properties.cend())
-        {
-            return false;
-        }
-
-        try
-        {
-            int v = std::any_cast<int>(std::get<1>(*i));
-            if (ptr != nullptr)
-            {
-                *ptr = v;
-            }
-        }
-        catch (const std::bad_any_cast&)
-        {
-            return false;
-        }
-
-        return true;*/
     }
 };

@@ -3,6 +3,28 @@
 
 using namespace std;
 
+BOOL enable_privs(void)
+{
+    HANDLE token;
+
+    struct {
+        DWORD count;
+        LUID_AND_ATTRIBUTES privilege[2];
+    } token_privileges;
+
+    token_privileges.count = 1;
+    token_privileges.privilege[0].Attributes = SE_PRIVILEGE_ENABLED;
+    token_privileges.privilege[1].Attributes = SE_PRIVILEGE_ENABLED;
+    
+    if (!LookupPrivilegeValue(0, SE_MANAGE_VOLUME_NAME, &token_privileges.privilege[0].Luid)) return FALSE;
+    //if (!LookupPrivilegeValue(0, SE_ASSIGNPRIMARYTOKEN_NAME, &token_privileges.privilege[1].Luid)) return FALSE;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &token)) return FALSE;
+    if (!AdjustTokenPrivileges(token, 0, (PTOKEN_PRIVILEGES)&token_privileges, 0, 0, 0)) return FALSE;
+    if (GetLastError() != ERROR_SUCCESS) return FALSE;
+
+    return TRUE;
+}
+
 //---------------------------------------------------------------------------------------
 
 WriterAsyncUnbuffered::WriterAsyncUnbuffered() :
@@ -47,7 +69,7 @@ WriterAsyncUnbuffered::WriterAsyncUnbuffered() :
         this->storageAlignmentInfo = QueryStorageAlignmentInfo(h);
     }
     catch (const runtime_error & e)
-    {
+    { 
     }
     //this->DetermineAlignmentInformation(h,filenameW.c_str());
     // 
@@ -55,6 +77,19 @@ WriterAsyncUnbuffered::WriterAsyncUnbuffered() :
     this->hFile = h;
 
     this->writer = make_unique<AsyncWriter3<Data>>(h, 16);
+
+    //enable_privs();
+    //SetFileValidData(h, 16ull*1024 * 1024*1024);
+    LARGE_INTEGER pos;
+    pos.QuadPart = 16ULL*1024 * 1024 * 1024;
+    SetFilePointerEx(h, pos, NULL, FILE_BEGIN);
+    SetEndOfFile(h);
+
+    enable_privs();
+    SetFileValidData(h, 16ull*1024 * 1024*1024);
+
+    pos.QuadPart = 0;
+    SetFilePointerEx(h, pos, NULL, FILE_BEGIN);
 }
 
 /*virtual*/void WriterAsyncUnbuffered::DoIt()
