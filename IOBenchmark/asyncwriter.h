@@ -9,6 +9,8 @@
 #include <limits>
 #include <sstream>
 
+using namespace std;
+
 class AsyncWriterException : public std::runtime_error
 {
 private:
