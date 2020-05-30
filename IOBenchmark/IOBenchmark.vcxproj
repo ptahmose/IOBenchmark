@@ -158,6 +158,7 @@
     <ClCompile Include="cmdlineargs.cpp" />
     <ClCompile Include="IOBenchmark.cpp" />
     <ClCompile Include="IWriter.cpp" />
+    <ClCompile Include="ringbufferwriter.cpp" />
     <ClCompile Include="StorageAlignmentInfo.cpp" />
     <ClCompile Include="utf8convert.cpp" />
     <ClCompile Include="WinConsoleOut.h" />
@@ -165,6 +166,7 @@
     <ClCompile Include="WriterAsync2.cpp" />
     <ClCompile Include="WriterAsyncUnbuffered.cpp" />
     <ClCompile Include="WriterBasic.cpp" />
+    <ClCompile Include="WriterRingBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="args.hxx" />
@@ -176,6 +178,7 @@
     <ClInclude Include="IWriter.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="propertybag.h" />
+    <ClInclude Include="ringbufferwriter.h" />
     <ClInclude Include="StorageAlignmentInfo.h" />
     <ClInclude Include="timeit.h" />
     <ClInclude Include="utf8convert.h" />
@@ -184,6 +187,7 @@
     <ClInclude Include="WriterAsyncUnbuffered.h" />
     <ClInclude Include="WriterBasic.h" />
     <ClInclude Include="WriterException.h" />
+    <ClInclude Include="WriterRingbuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="cmd.txt" />

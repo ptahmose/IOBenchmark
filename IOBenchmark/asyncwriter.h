@@ -106,7 +106,7 @@ public:
 	}
 
 	AsyncWriter2(tEnv env, HANDLE h, int maxNoOfPendingWrites) :
-		AsyncWriter2(env, h, maxNoOfPendingWrites, (numeric_limits<uint64_t>::max)())
+		AsyncWriter2(env, h, maxNoOfPendingWrites, (std::numeric_limits<uint64_t>::max)())
 	{
 	}
 
@@ -188,7 +188,7 @@ public:
 			return false;
 		}
 
-		if (this->maxNoOfPendingWrites != (numeric_limits<uint64_t>::max)())
+		if (this->maxNoOfPendingWrites != (std::numeric_limits<uint64_t>::max)())
 		{
 			auto size = data->size();
 			if (size < this->maxPendingBytes)

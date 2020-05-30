@@ -25,7 +25,8 @@ bool CCmdlineArgs::ParseArguments(int argc, char** argv)
        {"sync", IWriter::WriterType::SimpleSync},
        {"async", IWriter::WriterType::Async},
        {"async2", IWriter::WriterType::Async2},
-       {"asyncunbuffered", IWriter::WriterType::AsyncUnbuffered}
+       {"asyncunbuffered", IWriter::WriterType::AsyncUnbuffered},
+       {"unbuffered", IWriter::WriterType::Unbuffered}
       };
 
     args::ArgumentParser parser("IOBenchmark");
