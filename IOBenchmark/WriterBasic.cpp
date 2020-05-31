@@ -43,13 +43,13 @@ WriterBasic::WriterBasic() : hFile(INVALID_HANDLE_VALUE)
 		DWORD bytesWritten;
         auto blk = CreateBlkGenUniquePtr(this->options.blkGenHashCode, this->options.blkSize, startValueForFill);
 		//CBlk blk(this->options.blkSize, startValueForFill++);
-		DWORD dw = WriteFile(
+		BOOL r = WriteFile(
 			this->hFile,
 			blk->GetData(),
 			blk->GetDataSize(),
 			&bytesWritten,
 			NULL);
-		if (dw != TRUE)
+		if (r != TRUE)
 		{
 			auto excp = WriterException(WriterException::ErrorType::APIError, "Error when calling \"WriteFile\".");
 			excp.SetLastError(GetLastError());

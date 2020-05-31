@@ -57,12 +57,24 @@ WriterRingbuffer::WriterRingbuffer() : hFile(INVALID_HANDLE_VALUE)
 
 bool WriterRingbuffer::Write(const void* p, std::uint32_t s)
 {
+    BOOL B;
+    //s -= 1;
+    /*LARGE_INTEGER pos{ 1,0 };
+    BOOL B = SetFilePointerEx(this->hFile, pos, NULL, FILE_CURRENT);
+    pos.QuadPart = 4095;
+    B = SetFilePointerEx(this->hFile, pos, NULL, FILE_CURRENT);
+    pos.QuadPart = 4096;
+    B = SetFilePointerEx(this->hFile, pos, NULL, FILE_CURRENT);*/
     DWORD bytesWritten;
-    WriteFile(
+    B = WriteFile(
         this->hFile,
         p,
         s,
         &bytesWritten,
         nullptr);
+    if (B == FALSE)
+    {
+        DWORD lastErr = GetLastError();
+    }
     return true;
 }
