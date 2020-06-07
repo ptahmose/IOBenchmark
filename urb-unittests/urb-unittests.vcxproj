@@ -45,10 +45,13 @@
     <OutDir>$(SolutionDir)\Build\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemGroup>
+    <ClInclude Include="CFileApiMem.h" />
     <ClInclude Include="include_urb.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CFileApiMem.cpp" />
     <ClCompile Include="ringbuffermanagertests.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="pch.cpp">
@@ -57,6 +60,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="unbufferedfilewriter2test.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\urb\urb.vcxproj">

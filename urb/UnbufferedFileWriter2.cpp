@@ -12,7 +12,8 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi
     unbufferedWriteOutSize(1024 * 1024),
     prodConsQueue(100),
     runstate(RunState::NotStarted),
-    blkWriteSize(512)
+    blkWriteSize(512),
+    fileSize(0)
 {
     memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
 }
