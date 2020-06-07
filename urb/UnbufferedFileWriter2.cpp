@@ -3,19 +3,39 @@
 
 #include <cassert>
 
+#include "CFileApiImpl.h"
+
 using namespace std;
 
-CUnbufferedFileWriter2::CUnbufferedFileWriter2()
-    : hUnbuffered(INVALID_HANDLE_VALUE),
-    hBuffered(INVALID_HANDLE_VALUE),
+CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi) :
+    fileApi(move(fileApi)),
     unbufferedWriteOutSize(1024 * 1024),
-    prodConsQueue(100)
+    prodConsQueue(100),
+    runstate(RunState::NotStarted),
+    blkWriteSize(512)
+{
+    memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
+}
+
+CUnbufferedFileWriter2::CUnbufferedFileWriter2() :
+    CUnbufferedFileWriter2(make_unique<CFileApiImpl>())
 {
 }
 
+//CUnbufferedFileWriter2::CUnbufferedFileWriter2()
+//    : hUnbuffered(INVALID_HANDLE_VALUE),
+//    hBuffered(INVALID_HANDLE_VALUE),
+//    unbufferedWriteOutSize(1024 * 1024),
+//    prodConsQueue(100),
+//    runstate(RunState::NotStarted),
+//    blkWriteSize(512)
+//{
+//    memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
+//}
+
 /*virtual*/void CUnbufferedFileWriter2::InitializeFile(const wchar_t* filename)
 {
-    HANDLE hUnbuffered = ::CreateFileW(
+    /*HANDLE hUnbuffered = ::CreateFileW(
         filename,
         GENERIC_WRITE,
         FILE_SHARE_WRITE | FILE_SHARE_READ,
@@ -30,7 +50,8 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2()
         0);
 
     this->hUnbuffered = hUnbuffered;
-    this->hBuffered = hBuffered;
+    this->hBuffered = hBuffered;*/
+    this->fileApi->Create(filename);
 
     //this->ringBufferManager = std::make_unique<CRingBufferManager>(
     //    1 * 1024 * 1024,
@@ -66,27 +87,71 @@ void CUnbufferedFileWriter2::OverwriteSync(std::uint64_t offset, const void* ptr
 
 void CUnbufferedFileWriter2::Close()
 {
+    Command cmd;
+    if (this->runstate == RunState::RunStarted && this->ringBufRun.size > 0)
+    {
+        cmd.cmd = Command::Cmd::WriteBuffered;
+        cmd.unbufferedOrBufferedWriteSize = this->ringBufRun.size;
+        cmd.unbufferedOrBufferedWriteOffset = this->ringBufRun.baseFileOffset;
+        this->prodConsQueue.enqueue(cmd);
+    }
+
+    cmd.cmd = Command::Cmd::Terminate;
+    this->prodConsQueue.enqueue(cmd);
+
     this->threadobj.join();
+    this->fileApi->Close();
 }
 
 bool CUnbufferedFileWriter2::TryAppendAtEnd(const void* ptr, std::uint32_t size)
 {
-    uint32_t freeSize = this->ringBuffer->GetFreeSize();
+    const uint32_t freeSize = this->ringBuffer->GetFreeSize();
     if (freeSize < size)
     {
         return false;
     }
 
-    bool b = this->ringBuffer->Add(ptr, size);
-
-    if (this->ringBuffer->GetUsedSize() >= this->unbufferedWriteOutSize)
+    if (this->runstate == RunState::NotStarted)
     {
+        this->ringBufRun.baseFileOffset = this->fileSize;
+        this->ringBufRun.size = 0;
+        this->runstate = RunState::RunStarted;
+    }
+
+    bool b = this->ringBuffer->Add(ptr, size);
+    assert(b);
+
+    this->ringBufRun.size += size;
+
+    if (this->ringBufRun.size >= this->unbufferedWriteOutSize)
+    {
+        uint32_t blkAlignedSize = (this->ringBufRun.size / this->blkWriteSize) * this->blkWriteSize;
         Command cmd;
         cmd.cmd = Command::Cmd::WriteUnbuffered;
-        cmd.unbufferedWriteSize = (this->ringBuffer->GetUsedSize() / this->unbufferedWriteOutSize) * this->unbufferedWriteOutSize;
-        cmd.unbufferedWriteOffset = this->ringBufRun.baseFileOffset;
+        cmd.unbufferedOrBufferedWriteSize = blkAlignedSize;
+        cmd.unbufferedOrBufferedWriteOffset = this->ringBufRun.baseFileOffset;// this->ringBufRun.baseFileOffset;
         this->prodConsQueue.enqueue(cmd);
+
+        if (blkAlignedSize < this->ringBufRun.size)
+        {
+            this->ringBufRun.baseFileOffset += blkAlignedSize;
+            this->ringBufRun.size = this->ringBufRun.size - blkAlignedSize;
+        }
+        else
+        {
+            this->runstate = RunState::NotStarted;
+        }
     }
+
+    //this->fileSize += size;
+    //if (this->ringBuffer->GetUsedSize() >= this->unbufferedWriteOutSize)
+    //{
+    //    Command cmd;
+    //    cmd.cmd = Command::Cmd::WriteUnbuffered;
+    //    cmd.unbufferedOrBufferedWriteSize = (this->ringBuffer->GetUsedSize() / this->unbufferedWriteOutSize) * this->unbufferedWriteOutSize;
+    //    cmd.unbufferedOrBufferedWriteOffset = this->ringBufRun.baseFileOffset;
+    //    this->prodConsQueue.enqueue(cmd);
+    //}
 
     this->fileSize += size;
     return true;
@@ -107,6 +172,12 @@ void CUnbufferedFileWriter2::WriteThreadFunction()
         {
         case Command::Cmd::WriteUnbuffered:
             this->WriteUnbuffered(cmd);
+            break;
+        case Command::Cmd::WriteBuffered:
+            this->WriteBuffered(cmd);
+            break;
+        case Command::Cmd::Terminate:
+            return;
         }
     }
 }
@@ -114,31 +185,63 @@ void CUnbufferedFileWriter2::WriteThreadFunction()
 void CUnbufferedFileWriter2::WriteUnbuffered(const Command& cmd)
 {
     CRingBuffer::ReadDataInfo readInfo;
-    this->ringBuffer->Get(cmd.unbufferedWriteSize, readInfo);
+    bool b = this->ringBuffer->Get(cmd.unbufferedOrBufferedWriteSize, readInfo);
+    assert(b);
 
-    DWORD bytesWritten;
-    OVERLAPPED overlapped;
-    ZeroMemory(&overlapped, sizeof(overlapped));
-    overlapped.Offset = (DWORD)cmd.unbufferedWriteOffset;
-    overlapped.OffsetHigh = (DWORD)(cmd.unbufferedWriteOffset >> 32);
-    BOOL B = WriteFile(
-        this->hBuffered,
+    this->fileApi->WriteUnbuffered(
+        cmd.unbufferedOrBufferedWriteOffset,
         readInfo.ptr1,
-        readInfo.size1,
-        &bytesWritten,
-        &overlapped);
-    assert(B == TRUE);
+        readInfo.size1);
+    //DWORD bytesWritten;
+    //OVERLAPPED overlapped;
+    //ZeroMemory(&overlapped, sizeof(overlapped));
+    //overlapped.Offset = (DWORD)cmd.unbufferedOrBufferedWriteOffset;
+    //overlapped.OffsetHigh = (DWORD)(cmd.unbufferedOrBufferedWriteOffset >> 32);
+    //BOOL B = WriteFile(
+    //    this->hBuffered,
+    //    readInfo.ptr1,
+    //    readInfo.size1,
+    //    &bytesWritten,
+    //    &overlapped);
+    //assert(B == TRUE);
 
     if (readInfo.ptr2 != nullptr)
     {
-        overlapped.Offset = (DWORD)(cmd.unbufferedWriteOffset+readInfo.size1);
-        overlapped.OffsetHigh = (DWORD)((cmd.unbufferedWriteOffset + readInfo.size1) >> 32);
-        BOOL B = WriteFile(
+        this->fileApi->WriteUnbuffered(
+            cmd.unbufferedOrBufferedWriteOffset + readInfo.size1,
+            readInfo.ptr2,
+            readInfo.size2);
+        /*overlapped.Offset = (DWORD)(cmd.unbufferedOrBufferedWriteOffset + readInfo.size1);
+        overlapped.OffsetHigh = (DWORD)((cmd.unbufferedOrBufferedWriteOffset + readInfo.size1) >> 32);
+         B = WriteFile(
             this->hBuffered,
             readInfo.ptr2,
             readInfo.size2,
             &bytesWritten,
             &overlapped);
-        assert(B == TRUE);
+        assert(B == TRUE);*/
     }
+
+    this->ringBuffer->AdvanceRead(cmd.unbufferedOrBufferedWriteSize);
+}
+
+void CUnbufferedFileWriter2::WriteBuffered(const Command& cmd)
+{
+    CRingBuffer::ReadDataInfo readInfo;
+    bool b = this->ringBuffer->Get(cmd.unbufferedOrBufferedWriteSize, readInfo);
+    assert(b);
+
+    this->fileApi->WriteBuffered(
+        cmd.unbufferedOrBufferedWriteOffset,
+        readInfo.ptr1,
+        readInfo.size1);
+    if (readInfo.ptr2 != nullptr)
+    {
+        this->fileApi->WriteBuffered(
+            cmd.unbufferedOrBufferedWriteOffset + readInfo.size1,
+            readInfo.ptr2,
+            readInfo.size2);
+    }
+
+    this->ringBuffer->AdvanceRead(cmd.unbufferedOrBufferedWriteSize);
 }

@@ -156,8 +156,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="atomicops.h" />
+    <ClInclude Include="CFileApiImpl.h" />
     <ClInclude Include="exceptions.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IFileApi.h" />
     <ClInclude Include="IUnbufferedFileWriter.h" />
     <ClInclude Include="occupancycontroller.h" />
     <ClInclude Include="pch.h" />
@@ -168,6 +170,7 @@
     <ClInclude Include="UnbufferedFileWriter2.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CFileApiImpl.cpp" />
     <ClCompile Include="occupancycontroller.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

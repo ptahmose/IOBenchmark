@@ -29,12 +29,26 @@ int main()
     writer.Close();*/
     CUnbufferedFileWriter2 writer;
     writer.InitializeFile(L"D:\\test.bin");
+    bool b;
     for (int i = 0; i < 16; ++i)
     {
         writer.TryAppendNoWait(i*64*1024,_64k.get(), 64 * 1024);
     }
 
+    writer.TryAppendNoWait(16 * 64 * 1024, _128.get(), 1);
+
     Sleep(100);
+    for (int i = 0; i < 16; ++i)
+    {
+        for (;;)
+        {
+            b = writer.TryAppendNoWait((16 + i) * 64 * 1024 + 1, _64k.get(), 64 * 1024);
+            if (b) break;
+            Sleep(100);
+        }
+    }
+
+
 
     writer.Close();
 }
