@@ -10,6 +10,12 @@
 class CRingBufferManager
 {
 private:
+    struct BufferInfo
+    {
+        std::uint64_t filePos;
+        DWORD validDataSize;
+    };
+
     std::function<bool(const void* ptr, std::uint32_t size)> writeFunction;
 
     COccupancyController occupancy;
