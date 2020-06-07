@@ -57,8 +57,23 @@ private:
     RingBufferRun ringBufRun;
     std::uint64_t fileSize;
 public:
+    struct InitParameters
+    {
+        /// Size of the ring buffer in bytes - this must be a multiple of "unbufferedWriteOutBlockSize".
+        std::uint32_t ringBufferSize;
+
+        /// Size of the chunks we write out to disk - must be a multiple of "unbufferedWriteOutBlockSize".
+        std::uint32_t unbufferedWriteOutSize;
+
+        std::uint32_t unbufferedWriteOutBlockSize;
+    };
+
+    static InitParameters defaultInitParameters;
+public:
     CUnbufferedFileWriter2();
+    CUnbufferedFileWriter2(const InitParameters& initparams);
     CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi);
+    CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi, const InitParameters& initparams);
     virtual void InitializeFile(const wchar_t* filename);
     virtual bool TryAppendNoWait(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size);

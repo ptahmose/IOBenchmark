@@ -1,13 +1,13 @@
 #include "pch.h"
-#include "UnbufferedFileWriter2.h"
-
 #include <cassert>
-
 #include "CFileApiImpl.h"
+#include "UnbufferedFileWriter2.h"
 
 using namespace std;
 
-CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi) :
+/*static*/CUnbufferedFileWriter2::InitParameters CUnbufferedFileWriter2::defaultInitParameters = { 4 * 1024 * 1024, 1 * 1024 * 1024, 512 };
+
+CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi, const InitParameters& initparams) :
     fileApi(move(fileApi)),
     unbufferedWriteOutSize(1024 * 1024),
     prodConsQueue(100),
@@ -18,40 +18,23 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi
     memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
 }
 
+CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi) :
+    CUnbufferedFileWriter2(move(fileApi), CUnbufferedFileWriter2::defaultInitParameters)
+{
+}
+
 CUnbufferedFileWriter2::CUnbufferedFileWriter2() :
     CUnbufferedFileWriter2(make_unique<CFileApiImpl>())
 {
 }
 
-//CUnbufferedFileWriter2::CUnbufferedFileWriter2()
-//    : hUnbuffered(INVALID_HANDLE_VALUE),
-//    hBuffered(INVALID_HANDLE_VALUE),
-//    unbufferedWriteOutSize(1024 * 1024),
-//    prodConsQueue(100),
-//    runstate(RunState::NotStarted),
-//    blkWriteSize(512)
-//{
-//    memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
-//}
+CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams) :
+    CUnbufferedFileWriter2(make_unique<CFileApiImpl>(), initparams)
+{
+}
 
 /*virtual*/void CUnbufferedFileWriter2::InitializeFile(const wchar_t* filename)
 {
-    /*HANDLE hUnbuffered = ::CreateFileW(
-        filename,
-        GENERIC_WRITE,
-        FILE_SHARE_WRITE | FILE_SHARE_READ,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH,
-        NULL);
-    HANDLE hBuffered = ReOpenFile(
-        hUnbuffered,
-        GENERIC_WRITE,
-        FILE_SHARE_WRITE | FILE_SHARE_READ,
-        0);
-
-    this->hUnbuffered = hUnbuffered;
-    this->hBuffered = hBuffered;*/
     this->fileApi->Create(filename);
 
     //this->ringBufferManager = std::make_unique<CRingBufferManager>(
@@ -193,18 +176,6 @@ void CUnbufferedFileWriter2::WriteUnbuffered(const Command& cmd)
         cmd.unbufferedOrBufferedWriteOffset,
         readInfo.ptr1,
         readInfo.size1);
-    //DWORD bytesWritten;
-    //OVERLAPPED overlapped;
-    //ZeroMemory(&overlapped, sizeof(overlapped));
-    //overlapped.Offset = (DWORD)cmd.unbufferedOrBufferedWriteOffset;
-    //overlapped.OffsetHigh = (DWORD)(cmd.unbufferedOrBufferedWriteOffset >> 32);
-    //BOOL B = WriteFile(
-    //    this->hBuffered,
-    //    readInfo.ptr1,
-    //    readInfo.size1,
-    //    &bytesWritten,
-    //    &overlapped);
-    //assert(B == TRUE);
 
     if (readInfo.ptr2 != nullptr)
     {
@@ -212,15 +183,6 @@ void CUnbufferedFileWriter2::WriteUnbuffered(const Command& cmd)
             cmd.unbufferedOrBufferedWriteOffset + readInfo.size1,
             readInfo.ptr2,
             readInfo.size2);
-        /*overlapped.Offset = (DWORD)(cmd.unbufferedOrBufferedWriteOffset + readInfo.size1);
-        overlapped.OffsetHigh = (DWORD)((cmd.unbufferedOrBufferedWriteOffset + readInfo.size1) >> 32);
-         B = WriteFile(
-            this->hBuffered,
-            readInfo.ptr2,
-            readInfo.size2,
-            &bytesWritten,
-            &overlapped);
-        assert(B == TRUE);*/
     }
 
     this->ringBuffer->AdvanceRead(cmd.unbufferedOrBufferedWriteSize);

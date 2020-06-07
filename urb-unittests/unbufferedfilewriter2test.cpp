@@ -10,8 +10,9 @@ TEST(UnbufferedFileWriter2, Test1)
     auto fileApiMem = make_unique<CFileApiMemImpl>();
     const CFileApiMemImpl* ptrFileApiMem = fileApiMem.get();
 
+    CUnbufferedFileWriter2::InitParameters initParameters = { 2 * 1024 * 1024,1 * 1024 * 1024,512 };
     CMd5Sum md5SumGen1; char md5sum1[16];
-    CUnbufferedFileWriter2 fw(move(fileApiMem));
+    CUnbufferedFileWriter2 fw(move(fileApiMem), initParameters);
     fw.InitializeFile(L"xxx");
 
     std::unique_ptr<void, void(*)(void*)> _64k(malloc(64 * 1024), &free);
