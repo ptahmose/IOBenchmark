@@ -2,21 +2,17 @@
 
 #include <memory>
 #include <thread>
-
-
-
 #include "IFileApi.h"
 #include "IUnbufferedFileWriter.h"
 #include "readerwriterqueue.h"
 #include "ringbuffer.h"
-//#include "RingBufferManager.h"
 
 class CUnbufferedFileWriter2 : public IUnbufferedFileWriter2
 {
 private:
     struct Command
     {
-        enum class  Cmd
+        enum class Cmd
         {
             WriteUnbuffered,
             WriteBuffered,
@@ -57,6 +53,8 @@ private:
     RingBufferRun ringBufRun;
     std::uint64_t fileSize;
 public:
+    /// The parameters used to initialize an instance - the memory sizes and alignment requirements are
+    /// specified here.
     struct InitParameters
     {
         /// Size of the ring buffer in bytes - this must be a multiple of "unbufferedWriteOutBlockSize".
@@ -65,6 +63,7 @@ public:
         /// Size of the chunks we write out to disk - must be a multiple of "unbufferedWriteOutBlockSize".
         std::uint32_t unbufferedWriteOutSize;
 
+        /// The block written to disk must be a multiple of this.
         std::uint32_t unbufferedWriteOutBlockSize;
     };
 
@@ -74,6 +73,7 @@ public:
     CUnbufferedFileWriter2(const InitParameters& initparams);
     CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi);
     CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi, const InitParameters& initparams);
+
     virtual void InitializeFile(const wchar_t* filename);
     virtual bool TryAppendNoWait(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size);
