@@ -1,0 +1,334 @@
+#include "cmdlineargs.h"
+#include <iostream>
+#include "args.hxx"
+#include <regex>
+#include "utils.h"
+
+using namespace std;
+
+CCmdlineArgs::CCmdlineArgs()
+{
+    this->SetDefaults();
+}
+
+bool CCmdlineArgs::ParseArguments(int argc, char** argv)
+{
+    args::ArgumentParser parser("urbtest");
+    args::ValueFlag<string> filesizeString(parser, "filesize", "The filesize", { 'f',"filesize" });
+    args::ValueFlag<string> ringbuffersizeString(parser, "ringbuffersize", "The size of the ringbuffer", { 'r',"ringbuffersize" });
+    args::ValueFlag<string> writeoutsizeString(parser, "writeoutsize", "The size of an unbuffered write operation", { 'w',"writeoutsize" });
+    args::Positional<std::string> filenameArg(parser, "filename", "The filename");
+
+    try
+    {
+        parser.ParseCLI(argc, argv);
+    }
+    catch (args::Help)
+    {
+        std::cout << parser;
+        return true;
+    }
+    catch (args::ParseError e)
+    {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return false;
+    }
+    catch (args::ValidationError e)
+    {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return false;
+    }
+
+    if (filesizeString)
+    {
+        //std::cout << "filesize: " << args::get(filesizeString) << std::endl;
+
+        uint64_t filesize;
+        CCmdlineArgs::TryParseSizeUint64(args::get(filesizeString), filesize);
+        this->fileSize = filesize;
+    }
+
+    if (ringbuffersizeString)
+    {
+        uint32_t ringbuffersize;
+        CCmdlineArgs::TryParseSizeUint32(args::get(ringbuffersizeString), ringbuffersize);
+        this->ringBufferSize = ringbuffersize;
+    }
+
+    if (writeoutsizeString)
+    {
+        uint32_t writeoutsize;
+        CCmdlineArgs::TryParseSizeUint32(args::get(ringbuffersizeString), writeoutsize);
+        this->writeOutSize = writeoutsize;
+    }
+
+    if (filenameArg)
+    {
+        std::cout << "filename: " << args::get(filenameArg) << std::endl;
+        this->filename = Utf8ToUtf16(args::get(filenameArg));
+    }
+
+    return true;
+}
+
+std::wstring CCmdlineArgs::GetFilename() const
+{
+    return this->filename;
+}
+
+std::uint64_t CCmdlineArgs::GetFileSize() const
+{
+    return this->fileSize;
+}
+
+std::uint32_t CCmdlineArgs::GetRingBufferSize() const
+{
+    return this->ringBufferSize;
+}
+
+std::uint32_t CCmdlineArgs::GetWriteOutSize() const
+{
+    return this->writeOutSize;
+}
+
+void CCmdlineArgs::SetDefaults()
+{
+    this->fileSize = 50ULL * 1024 * 1024;
+    this->ringBufferSize = 4 * 1024 * 1024;
+    this->writeOutSize = 1 * 1024 * 1024;
+}
+
+/*static*/bool CCmdlineArgs::TryParseSizeUint64(const std::string& str, std::uint64_t& size)
+{
+    return TryParseSize(
+        str,
+        [&](const std::string& number, const std::string& prefix)->bool
+        {
+            return TryGetSizeUint64(number, prefix, size);
+        });
+}
+
+/*static*/bool CCmdlineArgs::TryParseSizeUint32(const std::string& str, std::uint32_t& size)
+{
+    return TryParseSize(
+        str,
+        [&](const std::string& number, const std::string& prefix)->bool
+        {
+            return TryGetSizeUint32(number, prefix, size);
+        });
+}
+
+/*static*/bool CCmdlineArgs::TryParseSize(const std::string& str, std::function<bool(const std::string&, const std::string&)> parseFunc)
+{
+    const std::regex regex("[[:blank:]]*([[:digit:]]+)[[:blank:]]*(ki|Ki|Mi|Gi|Ti|Pi|k|K|M|G|T|P)?[[:blank:]]*");
+    std::smatch match;
+    if (std::regex_match(str, match, regex))
+    {
+        if (match.size() == 3 && match[1].matched == true)
+        {
+            return parseFunc(match[1].str(), match[2].matched ? match[2].str() : "");
+        }
+    }
+
+    return false;
+}
+
+/*static*/bool CCmdlineArgs::TryGetSizeUint64(const std::string& number, const std::string& prefix, std::uint64_t& size)
+{
+    if (prefix.empty())
+    {
+        uint64_t v;
+        bool b = TryParseUint64(number, &v);
+        if (b == true)
+        {
+            size = v;
+            return true;
+        }
+
+        return false;
+    }
+    else
+    {
+        uint64_t v;
+        bool b = TryParseUint64(number, &v);
+        if (b == true && v <= (std::numeric_limits<uint32_t>::max)())
+        {
+            uint64_t mul = ParsePrefix(prefix);
+            if (mul == 0)
+            {
+                return false;
+            }
+
+            uint64_t prodLo, prodHi;
+            Mult64to128(mul, v, &prodHi, &prodLo);
+            if (prodHi > 0)
+            {
+                return false;
+            }
+
+            size = prodLo;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*static*/bool CCmdlineArgs::TryGetSizeUint32(const std::string& number, const std::string& prefix, std::uint32_t& size)
+{
+    if (prefix.empty())
+    {
+        uint64_t v;
+        bool b = TryParseUint64(number, &v);
+        if (b == true && v <= (std::numeric_limits<uint32_t>::max)())
+        {
+            size = (uint32_t)v;
+            return true;
+        }
+
+        return false;
+    }
+    else
+    {
+        uint64_t v;
+        bool b = TryParseUint64(number, &v);
+        if (b == true && v <= (std::numeric_limits<uint32_t>::max)())
+        {
+            uint64_t mul = ParsePrefix(prefix);
+            if (mul == 0)
+            {
+                return false;
+            }
+
+            uint64_t prodLo, prodHi;
+            Mult64to128(mul, v, &prodHi, &prodLo);
+            if (prodHi > 0 || prodLo > (std::numeric_limits<uint32_t>::max)())
+            {
+                return false;
+            }
+
+            size = (uint32_t)prodLo;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*static*/bool CCmdlineArgs::TryParseUint64(const std::string& str, std::uint64_t* value)
+{
+    size_t s;
+    try
+    {
+        uint64_t v = std::stoull(str.c_str(), &s, 10);
+        if (s == str.length())
+        {
+            if (value != nullptr)
+            {
+                *value = v;
+            }
+
+            return true;
+        }
+    }
+    catch (std::invalid_argument&)
+    {
+        return false;
+    }
+    catch (std::out_of_range&)
+    {
+        return false;
+    }
+
+    return false;
+}
+
+/*static*/std::uint64_t CCmdlineArgs::ParsePrefix(const std::string& str)
+{
+    if (str == "ki" || str == "Ki")
+    {
+        return 1024;
+    }
+
+    if (str == "Mi")
+    {
+        return 1048576;
+    }
+
+    if (str == "Gi")
+    {
+        return 1073741824;
+    }
+
+    if (str == "Ti")
+    {
+        return 1099511627776ull;
+    }
+
+    if (str == "Pi")
+    {
+        return 1125899906842624ull;
+    }
+
+    // Note: even though this is wrong, we interpret those prefixes also as "base-2"...
+    if (str == "k" || str == "K")
+    {
+        return 1024;// 1000;
+    }
+
+    if (str == "M")
+    {
+        return 1048576;// 1000000;
+    }
+
+    if (str == "G")
+    {
+        return 1073741824;// 1000000000;
+    }
+
+    if (str == "T")
+    {
+        return 1099511627776ull;// 1000000000000ull;
+    }
+
+    if (str == "P")
+    {
+        return 1125899906842624ull;// 1000000000000000ull;
+    }
+
+    return 0;
+}
+
+/*static*/ void CCmdlineArgs::Mult64to128(uint64_t op1, uint64_t op2, uint64_t* hi, uint64_t* lo)
+{
+    *lo = _umul128(op1, op2, hi);
+    /*
+    // portable version
+    uint64_t u1 = (op1 & 0xffffffff);
+    uint64_t v1 = (op2 & 0xffffffff);
+    uint64_t t = (u1 * v1);
+    uint64_t w3 = (t & 0xffffffff);
+    uint64_t k = (t >> 32);
+
+    op1 >>= 32;
+    t = (op1 * v1) + k;
+    k = (t & 0xffffffff);
+    uint64_t w1 = (t >> 32);
+
+    op2 >>= 32;
+    t = (u1 * op2) + k;
+    k = (t >> 32);
+
+    if (hi != nullptr)
+    {
+        *hi = (op1 * op2) + w1 + k;
+    }
+
+    if (lo != nullptr)
+    {
+        *lo = (t << 32) + w3;
+    }
+    */
+}

@@ -7,7 +7,7 @@
 using namespace std;
 
 CRingBuffer::CRingBuffer(std::uint32_t size, std::uint32_t alignment)
-    : ptrBuffer(nullptr), readPtr(0), writerPtr(0)
+    : ptrBuffer(nullptr), readPtr(0), writerPtr(0), isEmpty(true)
 {
     this->AllocateMemory(size, alignment);
     this->size = size;
@@ -56,13 +56,17 @@ void CRingBuffer::AllocateMemory(std::uint32_t size, std::uint32_t alignment)
 std::uint32_t CRingBuffer::GetFreeSize()
 {
     uint32_t bytesFree;
-    if (this->writerPtr >= this->readPtr)
+    if (this->writerPtr > this->readPtr)
     {
         bytesFree = this->size - (this->writerPtr - this->readPtr);
     }
-    else
+    else if ((this->writerPtr < this->readPtr))
     {
         bytesFree = this->readPtr - this->writerPtr;
+    }
+    else
+    {
+        bytesFree = this->isEmpty ? this->size : 0;
     }
 
     return bytesFree;
@@ -96,6 +100,7 @@ bool CRingBuffer::Add(const void* ptr, std::uint32_t size)
     }
 
     this->writerPtr = (this->writerPtr + size) % this->size;
+    this->isEmpty = false;
     return true;
 }
 
@@ -127,5 +132,10 @@ bool CRingBuffer::Get(std::uint32_t size, ReadDataInfo& info)
 bool CRingBuffer::AdvanceRead(std::uint32_t size)
 {
     this->readPtr = (this->readPtr + size) % this->size;
+    if (this->readPtr == this->writerPtr)
+    {
+        this->isEmpty = true;
+    }
+
     return true;
 }

@@ -8,6 +8,9 @@ using namespace std;
 TEST(UnbufferedFileWriter2, Test1)
 {
     auto fileApiMem = make_unique<CFileApiMemImpl>();
+    
+    // This is of course kind of a dirty hack - we keep a pointer to the FileApi-object, for which we transfer
+    //  ownership to the file-writer below. 
     const CFileApiMemImpl* ptrFileApiMem = fileApiMem.get();
 
     CUnbufferedFileWriter2::InitParameters initParameters = { 2 * 1024 * 1024,1 * 1024 * 1024,512 };

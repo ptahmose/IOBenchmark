@@ -20,7 +20,8 @@ CCmdlineArgs::CCmdlineArgs()
 
 bool CCmdlineArgs::ParseArguments(int argc, char** argv)
 {
-    std::unordered_map<std::string, IWriter::WriterType> map{
+    std::unordered_map<std::string, IWriter::WriterType> map
+      {
        {"default", IWriter::WriterType::SimpleSync},
        {"sync", IWriter::WriterType::SimpleSync},
        {"async", IWriter::WriterType::Async},

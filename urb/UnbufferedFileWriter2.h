@@ -51,6 +51,9 @@ private:
     };
 
     RingBufferRun ringBufRun;
+
+    /// \brief  The current file size - this size reflects what has been added to the queue, not what
+    ///         is actually written out to the file.
     std::uint64_t fileSize;
 public:
     /// The parameters used to initialize an instance - the memory sizes and alignment requirements are
@@ -68,6 +71,8 @@ public:
     };
 
     static InitParameters defaultInitParameters;
+private:
+    std::uint32_t ringBufferSize;
 public:
     CUnbufferedFileWriter2();
     CUnbufferedFileWriter2(const InitParameters& initparams);
@@ -76,6 +81,7 @@ public:
 
     virtual void InitializeFile(const wchar_t* filename);
     virtual bool TryAppendNoWait(std::uint64_t offset, const void* ptr, std::uint32_t size);
+    virtual void AppendSync(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void Close();
 private:

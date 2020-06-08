@@ -10,6 +10,7 @@ private:
 
     std::uint32_t readPtr;
     std::uint32_t writerPtr;
+    bool isEmpty;
 public:
     struct ReadDataInfo
     {

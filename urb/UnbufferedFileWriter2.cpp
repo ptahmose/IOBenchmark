@@ -2,6 +2,7 @@
 #include <cassert>
 #include "CFileApiImpl.h"
 #include "UnbufferedFileWriter2.h"
+#include <iostream>
 
 using namespace std;
 
@@ -9,11 +10,12 @@ using namespace std;
 
 CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi, const InitParameters& initparams) :
     fileApi(move(fileApi)),
-    unbufferedWriteOutSize(1024 * 1024),
+    unbufferedWriteOutSize(initparams.unbufferedWriteOutSize),
     prodConsQueue(100),
     runstate(RunState::NotStarted),
-    blkWriteSize(512),
-    fileSize(0)
+    blkWriteSize(initparams.unbufferedWriteOutBlockSize),
+    fileSize(0),
+    ringBufferSize(initparams.ringBufferSize)
 {
     memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
 }
@@ -43,7 +45,10 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams)
     //    [this](const void* ptr, std::uint32_t size)->bool {return this->WriteFunc(ptr, size); }/*
     //    std::bind(&CUnbufferedFileWriter::WriteFunc, this, std::placeholders::_1)*/
     //);
-    this->ringBuffer = make_unique<CRingBuffer>(2 * 1024 * 1024, 4096);
+    this->ringBuffer = make_unique<CRingBuffer>(
+        this->ringBufferSize,
+        this->blkWriteSize);
+        //2 * 1024 * 1024, 4096);
 
     std::thread t(&CUnbufferedFileWriter2::ThreadFunction, this);
     this->threadobj = move(t);
@@ -62,6 +67,11 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams)
     this->prodConsQueue.enqueue(cmd);*/
 
     return false;
+}
+
+/*virtual*/void CUnbufferedFileWriter2::AppendSync(std::uint64_t offset, const void* ptr, std::uint32_t size)
+{
+
 }
 
 void CUnbufferedFileWriter2::OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size)
@@ -168,8 +178,14 @@ void CUnbufferedFileWriter2::WriteThreadFunction()
 
 void CUnbufferedFileWriter2::WriteUnbuffered(const Command& cmd)
 {
+    //cout << "Write: " << cmd.unbufferedOrBufferedWriteOffset << "  size: " << cmd.unbufferedOrBufferedWriteSize << endl;
     CRingBuffer::ReadDataInfo readInfo;
     bool b = this->ringBuffer->Get(cmd.unbufferedOrBufferedWriteSize, readInfo);
+    if (b == false)
+    {
+        DebugBreak();
+    }
+
     assert(b);
 
     this->fileApi->WriteUnbuffered(
