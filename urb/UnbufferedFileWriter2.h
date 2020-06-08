@@ -55,6 +55,9 @@ private:
     /// \brief  The current file size - this size reflects what has been added to the queue, not what
     ///         is actually written out to the file.
     std::uint64_t fileSize;
+
+    HANDLE  hWriteFinishedEvent;
+    volatile bool    setWriteFinishedEvent;
 public:
     /// The parameters used to initialize an instance - the memory sizes and alignment requirements are
     /// specified here.
@@ -84,6 +87,8 @@ public:
     virtual void AppendSync(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size);
     virtual void Close();
+
+    virtual ~CUnbufferedFileWriter2();
 private:
     bool WriteFunc(const void* ptr, std::uint32_t size);
     static void ThreadFunction(CUnbufferedFileWriter2* p);

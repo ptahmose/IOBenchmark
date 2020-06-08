@@ -3,6 +3,7 @@
 #include "CFileApiImpl.h"
 #include "UnbufferedFileWriter2.h"
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -15,9 +16,11 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi
     runstate(RunState::NotStarted),
     blkWriteSize(initparams.unbufferedWriteOutBlockSize),
     fileSize(0),
-    ringBufferSize(initparams.ringBufferSize)
+    ringBufferSize(initparams.ringBufferSize),
+    setWriteFinishedEvent(false)
 {
     memset(&this->ringBufRun, 0, sizeof(this->ringBufRun));
+    this->hWriteFinishedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 CUnbufferedFileWriter2::CUnbufferedFileWriter2(std::unique_ptr<IFileApi> fileApi) :
@@ -35,6 +38,11 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams)
 {
 }
 
+/*virtual*/CUnbufferedFileWriter2::~CUnbufferedFileWriter2()
+{
+    CloseHandle(this->hWriteFinishedEvent);
+}
+
 /*virtual*/void CUnbufferedFileWriter2::InitializeFile(const wchar_t* filename)
 {
     this->fileApi->Create(filename);
@@ -48,7 +56,7 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams)
     this->ringBuffer = make_unique<CRingBuffer>(
         this->ringBufferSize,
         this->blkWriteSize);
-        //2 * 1024 * 1024, 4096);
+    //2 * 1024 * 1024, 4096);
 
     std::thread t(&CUnbufferedFileWriter2::ThreadFunction, this);
     this->threadobj = move(t);
@@ -71,7 +79,51 @@ CUnbufferedFileWriter2::CUnbufferedFileWriter2(const InitParameters& initparams)
 
 /*virtual*/void CUnbufferedFileWriter2::AppendSync(std::uint64_t offset, const void* ptr, std::uint32_t size)
 {
+    if (offset != this->fileSize)
+    {
+        assert(false);
+        throw runtime_error("not implemented");
+    }
 
+    // well, first check if we can add it immediately without need to chop the request into parts
+    if (this->TryAppendAtEnd(ptr, size) == true)
+    {
+        return;
+    }
+
+    uint32_t bytesWritten = 0;
+    uint8_t* ptrToWrite = (uint8_t*)ptr;
+    for (;;)
+    {
+        if (bytesWritten == size)
+        {
+            break;
+        }
+
+        uint32_t freeSize = this->ringBuffer->GetFreeSize();
+        if (freeSize > 0)
+        {
+            uint32_t bytesToWrite = (min)(size - bytesWritten, freeSize);
+            bool b = this->TryAppendAtEnd(ptrToWrite, bytesToWrite);
+            assert(b);
+            ptrToWrite += bytesToWrite;
+            bytesWritten += bytesToWrite;
+        }
+        else
+        {
+            ResetEvent(this->hWriteFinishedEvent);
+            this->setWriteFinishedEvent = true;
+
+            // Note: we use the "double-check-pattern" here
+            freeSize = this->ringBuffer->GetFreeSize();
+            if (freeSize == 0)
+            {
+                // we will now be notified whenever some memory is freed in the ringbufffer
+                WaitForSingleObject(this->hWriteFinishedEvent, INFINITE);
+                this->setWriteFinishedEvent = false;
+            }
+        }
+    }
 }
 
 void CUnbufferedFileWriter2::OverwriteSync(std::uint64_t offset, const void* ptr, std::uint32_t size)
@@ -202,6 +254,10 @@ void CUnbufferedFileWriter2::WriteUnbuffered(const Command& cmd)
     }
 
     this->ringBuffer->AdvanceRead(cmd.unbufferedOrBufferedWriteSize);
+    if (this->setWriteFinishedEvent)
+    {
+        SetEvent(this->hWriteFinishedEvent);
+    }
 }
 
 void CUnbufferedFileWriter2::WriteBuffered(const Command& cmd)
@@ -223,4 +279,8 @@ void CUnbufferedFileWriter2::WriteBuffered(const Command& cmd)
     }
 
     this->ringBuffer->AdvanceRead(cmd.unbufferedOrBufferedWriteSize);
+    if (this->setWriteFinishedEvent)
+    {
+        SetEvent(this->hWriteFinishedEvent);
+    }
 }

@@ -101,15 +101,16 @@ void Test(const CCmdlineArgs& args)
             break;
         }
 
-        for (;;)
+        //for (;;)
         {
-            bool b = fw.TryAppendNoWait(byteswritten, sourceBuffer.get(), (uint32_t)bytesToAdd);
+            fw.AppendSync(byteswritten, sourceBuffer.get(), (uint32_t)bytesToAdd);
+            /*bool b = fw.TryAppendNoWait(byteswritten, sourceBuffer.get(), (uint32_t)bytesToAdd);
             if (b == true)
             {
                 break;
             }
 
-            Sleep(1);
+            Sleep(1);*/
         }
 
         byteswritten += bytesToAdd;
